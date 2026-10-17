@@ -91,6 +91,9 @@ php artisan serve --port=8099
 
 `traffic_secret` 用 Laravel `encrypted` cast 落库，响应不回显；`node_token` 只存 sha256，明文只在注册响应出现一次。
 
+> 这两个接口**始终返回 JSON**（内部加了 `force.json` 中间件，强制 `Accept: application/json`）：
+> 即使调用方没带 Accept 头，校验失败也是 `422 + {"errors":{...}}`，不会退化成 `302 + HTML`。
+
 ### 3.2 心跳 `POST /api/v1/nodes/{id}/heartbeat`
 
 ```
@@ -153,8 +156,18 @@ REG_API=http://127.0.0.1:8099/new ./install.sh --code <code>    # 指向本服�
 ## 8. 测试
 
 ```bash
-php artisan test     # 20 用例 / 70 断言（SQLite 内存库，见 phpunit.xml）
+php artisan test     # 23 用例 / 77 断言（SQLite 内存库，见 phpunit.xml）
 ```
+
+线上/联调自检（真实 HTTP，会插入一台测试节点，IP 默认取 `203.0.113.<随机>`）：
+
+```bash
+bash scripts/smoke-register.sh                                  # 默认 https://hysteria.ipx.sarl
+bash scripts/smoke-register.sh http://127.0.0.1:8099 4f13b9d93a8afb6e98283702
+```
+
+自检 5 项：首次注册（只发 register-hysteria 那四个字段）、同 IP 幂等、未知识别码 422、
+字段校验 422 JSON、心跳 200。跑完可在 `/admin/nodes` 点「删除」清掉测试节点。
 
 覆盖：注册入账与幂等、未知识别码/停用服务商、共享密钥、心跳鉴权与流量累加、禁用节点拒绝、
 租户隔离（列表不可见 + 跨租户 URL 404）、两个面板登录页与页面渲染、跨面板账号互斥。
@@ -179,6 +192,7 @@ APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/
 | 现象 | 原因 / 处理 |
 |---|---|
 | `require(.../vendor/autoload.php): Failed to open stream` | 依赖没装（`vendor/` 按惯例不入库）。跑 `bash dev.sh`，或手动 `php /usr/local/bin/composer.phar install`（composer 可能不在 PATH） |
+| `POST /new` 带真实 payload 返回 **500 Server Error** | 部署的是旧代码（`hostname` 未做空值保护的历史 bug）。`git pull && bash install.sh` 更新后重试 |
 | `composer --version` 无输出、`timeout: failed to run command 'composer'` | 机器上只有 `php8.2` 没有 `php` 命令，而 composer 的 shebang 是 `#!/usr/bin/env php` —— 文件在也执行不了。`install.sh` 现在会自动建 `/usr/local/bin/php` 别名，并改成 `php /usr/local/bin/composer.phar` 显式调用（不再裸调 composer） |
 | 面板样式全丢 | 没跑 `php artisan filament:assets` |
 | `/new` 返回 422 `unknown_code` | `obfs_password` 与 `providers.code` 不一致；先在 `/admin/providers` 建服务商 |

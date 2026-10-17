@@ -101,6 +101,7 @@ class NodeResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()->label('删除'),
             ])
             ->defaultSort('last_seen_at', 'desc');
     }

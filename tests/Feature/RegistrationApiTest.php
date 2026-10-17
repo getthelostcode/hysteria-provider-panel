@@ -67,6 +67,15 @@ class RegistrationApiTest extends TestCase
         $this->assertNull(Node::query()->sole()->hostname);
     }
 
+    public function test_validation_error_is_json_even_without_accept_header(): void
+    {
+        // register-hysteria 的 curl 只带 Content-Type，不带 Accept；接口必须回 JSON 而不是 302+HTML
+        $response = $this->post('/new', ['ip' => 'not-an-ip'], ['Content-Type' => 'application/json']);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'));
+    }
+
     public function test_registration_is_idempotent_by_ip(): void
     {
         Provider::factory()->create(['code' => 'carrier01']);
