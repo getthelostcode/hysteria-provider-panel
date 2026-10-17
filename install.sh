@@ -64,6 +64,17 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [[ -f "${SCRIPT_DIR}/artisan" ]] || die "请在仓库根目录执行（找不到 artisan）"
 
 # ------------------------------------------------------------------ PHP/依赖
+# 有些发行版/镜像只提供 php8.2 而没有 `php`：先补个别名，否则 composer（shebang 为
+# `#!/usr/bin/env php`）、`php artisan` 这类裸命令全部失效。
+if ! command -v php >/dev/null 2>&1; then
+  for cand in php8.2 php8.3 php8.4 php; do
+    if command -v "$cand" >/dev/null 2>&1; then
+      ln -sf "$(readlink -f "$(command -v "$cand")")" /usr/local/bin/php && \
+        info "系统没有 php 命令，已建别名 /usr/local/bin/php → $(readlink -f "$(command -v "$cand")")"
+      break
+    fi
+  done
+fi
 command -v php >/dev/null 2>&1 || die "缺少 php。Debian/Ubuntu: apt install -y php8.2-cli php8.2-mbstring php8.2-xml php8.2-intl php8.2-bcmath php8.2-zip php8.2-sqlite3 php8.2-mysql"
 PHP_BIN="${PHP_BIN:-$(command -v php)}"
 PHP_BIN="$(readlink -f "$PHP_BIN")"
@@ -75,24 +86,91 @@ info "PHP ${PHP_VERSION} → ${PHP_BIN}"
 
 REQUIRED_EXT=(mbstring xml intl bcmath zip json openssl)
 [[ "$DB_CONNECTION" == "mysql" ]] && REQUIRED_EXT+=(pdo_mysql) || REQUIRED_EXT+=(pdo_sqlite)
+# 注意：不要写 `php -m | grep -q` —— grep 命中即关闭管道会让 php 收到 SIGPIPE(141)，
+# 在 set -o pipefail 下整条管道判失败，于是明明装了扩展却报“缺少扩展”。
+PHP_MODULES="$("$PHP_BIN" -m)"
 for ext in "${REQUIRED_EXT[@]}"; do
-  "$PHP_BIN" -m | grep -qx "$ext" || die "缺少 PHP 扩展: ${ext}（Debian/Ubuntu: apt install -y php8.2-${ext}；pdo_sqlite 的包名是 php8.2-sqlite3，pdo_mysql 是 php8.2-mysql）"
+  grep -qx "$ext" <<<"$PHP_MODULES" \
+    || die "缺少 PHP 扩展: ${ext}（Debian/Ubuntu: apt install -y php8.2-${ext}；pdo_sqlite 的包名是 php8.2-sqlite3，pdo_mysql 是 php8.2-mysql）"
 done
 ok "PHP 扩展检查通过：${REQUIRED_EXT[*]}"
 # 说明：pdo_sqlite 的 apt 包名是 php8.2-sqlite3，pdo_mysql 是 php8.2-mysql
 
 # ------------------------------------------------------------------ composer
-if ! command -v composer >/dev/null 2>&1; then
-  warn "未找到 composer，尝试从官方安装器安装到 /usr/local/bin"
+# 关键：系统里可能只有 php8.2 而没有 `php` 命令。composer 的 shebang 是
+# `#!/usr/bin/env php`，那种机器上 /usr/local/bin/composer 存在却跑不起来
+# （表现为 `composer --version` 无输出、`timeout composer install` 报
+#  "No such file or directory"）。所以这里只用 $PHP_BIN 显式调用，绝不裸调 composer。
+COMPOSER_CMD=()
+export COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_NO_INTERACTION=1
+
+composer_version_line() {
+  # root 下不带 ALLOW_SUPERUSER 会先打一行插件禁用警告，别把那行当版本号
+  "$@" --version 2>/dev/null | grep -m1 'Composer version' || true
+}
+
+composer_runs() { # $@ = 调用前缀
+  [[ -n "$(composer_version_line "$@")" ]]
+}
+
+ensure_composer() {
+  local bin tmp expected actual phar
+  bin="$(command -v composer 2>/dev/null || true)"
+
+  # 1) 能直接跑就用
+  if [[ -n "$bin" ]] && composer_runs "$bin"; then
+    COMPOSER_CMD=("$bin")
+    ok "composer: $(composer_version_line "$bin")"
+    return 0
+  fi
+
+  # 2) 文件在但执行不了 —— 补 php 别名后再试，仍不行就用 PHP 直调该文件
+  if [[ -n "$bin" ]]; then
+    warn "composer 存在于 ${bin}，但执行失败（常见原因：shebang 找不到 php 命令）"
+    if ! command -v php >/dev/null 2>&1; then
+      ln -sf "$PHP_BIN" /usr/local/bin/php && ok "已补 php 命令别名 → ${PHP_BIN}"
+    fi
+    if composer_runs "$bin"; then
+      COMPOSER_CMD=("$bin")
+    elif composer_runs "$PHP_BIN" "$bin"; then
+      COMPOSER_CMD=("$PHP_BIN" "$bin")
+    fi
+    if [[ ${#COMPOSER_CMD[@]} -gt 0 ]]; then
+      ok "composer: $(composer_version_line "${COMPOSER_CMD[@]}")"
+      return 0
+    fi
+    warn "现有 composer 无法运行，改为安装 composer.phar"
+  fi
+
+  # 3) 已有可用的 composer.phar 就复用，否则下载官方 installer（校验 sha384）
+  phar="/usr/local/bin/composer.phar"
+  if [[ -x "$phar" ]] && composer_runs "$PHP_BIN" "$phar"; then
+    COMPOSER_CMD=("$PHP_BIN" "$phar")
+    ok "composer: $(composer_version_line "$PHP_BIN" "$phar")（复用 ${phar}）"
+    return 0
+  fi
   tmp="$(mktemp -d)"
-  run_t 60 curl -sS https://getcomposer.org/installer -o "$tmp/installer" || die "下载 composer 安装器失败"
-  EXPECTED="$(run_t 30 curl -sS https://composer.github.io/installer.sig || true)"
-  ACTUAL="$("$PHP_BIN" -r "echo hash_file('sha384', '${tmp}/installer');")"
-  [[ -n "$EXPECTED" && "$EXPECTED" == "$ACTUAL" ]] || die "composer 安装器签名校验失败"
-  "$PHP_BIN" "$tmp/installer" --install-dir=/usr/local/bin --filename=composer >/dev/null
+  info "下载 composer 安装器"
+  run_t 90 curl -fsS https://getcomposer.org/installer -o "$tmp/installer" \
+    || { rm -rf "$tmp"; die "下载 composer 安装器失败（检查出网/DNS）"; }
+  expected="$(run_t 30 curl -fsS https://composer.github.io/installer.sig || true)"
+  actual="$("$PHP_BIN" -r "echo hash_file('sha384', '${tmp}/installer');")"
+  if [[ -z "$expected" || "$expected" != "$actual" ]]; then
+    rm -rf "$tmp"
+    die "composer 安装器签名校验失败（expected=${expected:-空} actual=${actual}）"
+  fi
+  info "安装 composer.phar → ${phar}"
+  "$PHP_BIN" "$tmp/installer" --install-dir=/usr/local/bin --filename=composer.phar >/dev/null \
+    || { rm -rf "$tmp"; die "composer installer 执行失败"; }
   rm -rf "$tmp"
-  ok "composer 已安装：$(composer --version 2>/dev/null | head -1)"
-fi
+  chmod 755 "$phar"
+
+  composer_runs "$PHP_BIN" "$phar" || die "composer.phar 仍无法运行：$PHP_BIN $phar --version 看具体报错"
+  COMPOSER_CMD=("$PHP_BIN" "$phar")
+  ok "composer: $(composer_version_line "$PHP_BIN" "$phar")"
+}
+
+ensure_composer
 
 # ------------------------------------------------------------------ 代码落地
 if [[ "$(readlink -f "$SCRIPT_DIR")" != "$(readlink -f "$APP_DIR" 2>/dev/null || echo "")" ]]; then
@@ -106,9 +184,9 @@ fi
 cd "$APP_DIR"
 
 info "安装 composer 依赖"
-COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_NO_INTERACTION=1 \
-  run_t 600 composer install --no-interaction --prefer-dist --optimize-autoloader </dev/null \
-  | tail -3
+run_t 600 "${COMPOSER_CMD[@]}" install --no-interaction --prefer-dist --optimize-autoloader </dev/null \
+  | tail -5
+[[ -f vendor/autoload.php ]] || die "composer install 未生成 vendor/autoload.php"
 ok "依赖就绪"
 
 # ------------------------------------------------------------------ .env

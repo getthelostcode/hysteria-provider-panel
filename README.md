@@ -154,9 +154,9 @@ bash install.sh --no-services                                 # 只装应用，�
 APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/端口
 ```
 
-`install.sh` 会：检查 PHP(≥8.2) 与扩展 → 装 composer（缺则按 sha384 校验安装）→ 复制代码到 `APP_DIR` →
-写 `.env`/`APP_KEY` → 建库 → `migrate --seed` → 发布 Filament 资产 → 写 systemd 单元（`artisan serve`
-绑 `127.0.0.1:APP_PORT`）→ 验证 `/up`、`/admin/login`、`/provider/login`。可重复执行（种子幂等）。
+`install.sh` 会：检查 PHP(≥8.2) 与扩展 → 装 composer（缺 `php` 命令时先补 `/usr/local/bin/php` 别名；composer 存在但跑不起来时只用
+`php composer.phar` 显式调用，绝不裸调）→ 复制代码到 `APP_DIR` → 写 `.env`/`APP_KEY` → 建库 → `migrate --seed` →
+发布 Filament 资产 → 写 systemd 单元（`artisan serve` 绑 `127.0.0.1:APP_PORT`）→ 验证 `/up`、`/admin/login`、`/provider/login`。可重复执行（种子幂等）。
 
 生产建议把 `artisan serve` 换成 php-fpm + nginx（`root public/`，`try_files $uri /index.php?$query_string`），
 反代 / Cloudflare Tunnel 后面要设 `TRUSTED_PROXIES`（默认 `127.0.0.1,::1`），否则节点 IP 会记成代理地址。
@@ -165,6 +165,7 @@ APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/
 
 | 现象 | 原因 / 处理 |
 |---|---|
+| `composer --version` 无输出、`timeout: failed to run command 'composer'` | 机器上只有 `php8.2` 没有 `php` 命令，而 composer 的 shebang 是 `#!/usr/bin/env php` —— 文件在也执行不了。`install.sh` 现在会自动建 `/usr/local/bin/php` 别名，并改成 `php /usr/local/bin/composer.phar` 显式调用（不再裸调 composer） |
 | 面板样式全丢 | 没跑 `php artisan filament:assets` |
 | `/new` 返回 422 `unknown_code` | `obfs_password` 与 `providers.code` 不一致；先在 `/admin/providers` 建服务商 |
 | 节点注册了但显示离线 | 还没心跳；`last_seen_at` 超 90s 即离线，可调 `NODE_ONLINE_TTL` |
