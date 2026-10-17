@@ -248,7 +248,9 @@ info "发布 Filament 前端资产"
 "$PHP_BIN" artisan storage:link >/dev/null 2>&1 || true
 
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+# 只调目录权限，别给文件加执行位（否则 storage 下的 .gitignore 会被 git 记成 mode 变更）
+find storage bootstrap/cache -type d -exec chmod 775 {} + 2>/dev/null || true
+find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
 
 if [[ $OPTIMIZE -eq 1 ]]; then
   info "生产优化：config/route/view 缓存"

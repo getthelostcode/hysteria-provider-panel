@@ -76,7 +76,8 @@ class NodeRegistrationController
         ]);
 
         if ($isNew) {
-            $node->name = $data['hostname'] ?: $data['ip'];
+            // register-hysteria 只上报 ip/识别码/端口/secret，hostname 可能压根没有
+            $node->name = ($data['hostname'] ?? null) ?: $data['ip'];
             $node->status = Node::STATUS_ACTIVE;
         }
 

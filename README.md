@@ -24,6 +24,19 @@ register-hysteria/install.sh ──POST /new──▶ 本服务 ──┬─▶ 
 ## 2. 快速开始
 
 ```bash
+# 本机试用：一条命令装依赖 → 写 .env/APP_KEY → 建库播种 → 发布资产 → 起服务
+bash dev.sh                 # http://127.0.0.1:8099
+bash dev.sh --port 8080     # 换端口
+bash dev.sh --no-serve      # 只准备环境
+bash dev.sh --fresh         # 删掉本地 sqlite 重来
+```
+
+`dev.sh` 不假设 composer 在 `PATH` 里：会依次试 `command -v composer`、`/usr/local/bin/composer`、
+`/usr/bin/composer`、`/usr/local/bin/composer.phar`，都没有就下载 `./composer.phar`（sha384 校验）并用 PHP 调用。
+
+手动等价步骤：
+
+```bash
 composer install
 cp .env.example .env && php artisan key:generate
 
@@ -165,6 +178,7 @@ APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/
 
 | 现象 | 原因 / 处理 |
 |---|---|
+| `require(.../vendor/autoload.php): Failed to open stream` | 依赖没装（`vendor/` 按惯例不入库）。跑 `bash dev.sh`，或手动 `php /usr/local/bin/composer.phar install`（composer 可能不在 PATH） |
 | `composer --version` 无输出、`timeout: failed to run command 'composer'` | 机器上只有 `php8.2` 没有 `php` 命令，而 composer 的 shebang 是 `#!/usr/bin/env php` —— 文件在也执行不了。`install.sh` 现在会自动建 `/usr/local/bin/php` 别名，并改成 `php /usr/local/bin/composer.phar` 显式调用（不再裸调 composer） |
 | 面板样式全丢 | 没跑 `php artisan filament:assets` |
 | `/new` 返回 422 `unknown_code` | `obfs_password` 与 `providers.code` 不一致；先在 `/admin/providers` 建服务商 |

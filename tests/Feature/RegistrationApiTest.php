@@ -50,6 +50,23 @@ class RegistrationApiTest extends TestCase
         $this->assertNotSame(str_repeat('a', 48), $raw);
     }
 
+    public function test_registers_without_hostname_uses_ip_as_name(): void
+    {
+        // register-hysteria/install.sh 实际只发这四个字段
+        Provider::factory()->create(['code' => 'carrier01']);
+
+        $response = $this->postJson('/new', [
+            'ip' => '203.0.113.44',
+            'obfs_password' => 'carrier01',
+            'traffic_port' => 16666,
+            'traffic_secret' => str_repeat('c', 48),
+        ]);
+
+        $response->assertCreated();
+        $this->assertSame('203.0.113.44', Node::query()->sole()->name);
+        $this->assertNull(Node::query()->sole()->hostname);
+    }
+
     public function test_registration_is_idempotent_by_ip(): void
     {
         Provider::factory()->create(['code' => 'carrier01']);
