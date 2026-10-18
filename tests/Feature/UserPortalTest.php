@@ -177,6 +177,10 @@ class UserPortalTest extends TestCase
         $this->assertStringContainsString($me->uuid, $html);
         $this->assertStringContainsString('<svg', $html);
         $this->assertStringContainsString('obfs-password=alpha01', $html);
+        // 复制按钮：不再把 JSON 塞进双引号属性（会截断），且有 execCommand 降级
+        $this->assertStringContainsString('x-on:click="copy()"', $html);
+        $this->assertStringContainsString('execCommand', $html);
+        $this->assertStringNotContainsString('writeText(&quot;', $html);
     }
 
     public function test_disabled_user_cannot_access_portal(): void

@@ -35,7 +35,36 @@
     </x-filament::section>
 
     {{-- 一键安装：页面中部、左对齐 --}}
-    <div class="w-full" x-data="{ copied: false }">
+    <div
+        class="w-full"
+        x-data='{
+            copied: false,
+            text: @js($installCommand),
+            copy() {
+                const done = () => {
+                    this.copied = true;
+                    setTimeout(() => { this.copied = false; }, 1500);
+                };
+                const fallback = () => {
+                    const el = document.createElement("textarea");
+                    el.value = this.text;
+                    el.setAttribute("readonly", "");
+                    el.style.position = "fixed";
+                    el.style.opacity = "0";
+                    document.body.appendChild(el);
+                    el.select();
+                    try { document.execCommand("copy"); } catch (e) {}
+                    document.body.removeChild(el);
+                    done();
+                };
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(this.text).then(done).catch(fallback);
+                } else {
+                    fallback();
+                }
+            }
+        }'
+    >
         <h2 class="text-lg font-semibold text-gray-950 dark:text-white">一键安装本运营商的节点</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             在节点（Linux，root）上粘贴执行；脚本会从面板拉当前生效的模板，渲染后安装 Hysteria 并自动注册。
@@ -43,10 +72,7 @@
 
         <div class="mt-3 flex items-start gap-2">
             <pre class="flex-1 overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-left text-sm text-gray-100">{{ $installCommand }}</pre>
-            <x-filament::button
-                color="gray"
-                x-on:click="window.navigator.clipboard.writeText(@js($installCommand)); copied = true; setTimeout(() => copied = false, 1500)"
-            >
+            <x-filament::button type="button" color="gray" x-on:click="copy()">
                 <span x-text="copied ? '已复制' : '复制'"></span>
             </x-filament::button>
         </div>
