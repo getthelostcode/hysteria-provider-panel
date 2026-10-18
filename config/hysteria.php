@@ -9,4 +9,8 @@ return [
 
     // 注册接口是否要求共享密钥（留空 = 不校验；生产建议填）
     'register_shared_secret' => env('REGISTER_SHARED_SECRET', ''),
+
+    // 终端用户注册成功后展示的服务器地址（/join/{code} 的欢迎页、客户端配置）
+    'public_host' => env('HYSTERIA_PUBLIC_HOST', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+    'public_port' => (int) env('HYSTERIA_PUBLIC_PORT', 443),
 ];

@@ -134,6 +134,44 @@ curl -s -H "X-Collector-Token: $TOKEN" http://127.0.0.1:8099/api/collector/v1/no
 面板后台新增三个页面（「流量与在线」分组）：**用户流量**（按节点/用户/日期查）、
 **在线用户**（最近一轮快照 + 连接数）、**待踢队列**（新建 uuid 即入队，采集器 30s 内发现在线就踢）。
 
+### 3.5 终端用户注册 `/join/{code}` 与 Hysteria `/auth`
+
+每个运营商一个公开注册页（`code` 就是租户标识，也是节点 obfs 密码）：
+
+```
+https://hysteria.ipx.sarl/join/{operator_code}        # 例：/join/4f13b9d93a8afb6e98283702
+```
+
+- 用户填 **邮箱 + 密码**（≥8 位）即开通，账号归属该运营商；邮箱全局唯一。
+- 注册成功页给出「服务器地址 / 登录账号 / 混淆密码 / 用户 ID」和可直接复制的客户端 YAML。
+- 服务商后台 → **用户**（`/provider/{code}/users`）：看本运营商用户、停用/启用、改密、手工建号，
+  右上角「注册链接」直接弹出该运营商的 `/join/{code}`。
+- 平台后台 → **终端用户**（`/admin/end-users`）：跨运营商总览、按运营商筛选、停用/启用。
+- 运营商被停用（`providers.status=suspended`）时注册页与这些用户的鉴权都返回失败。
+
+节点鉴权端点：`POST /auth`（Hysteria2 HTTP auth 契约）
+
+```
+{"addr":"1.2.3.4:5678","auth":"<base64(邮箱:密码)>","tx":0,"rx":0}
+   → {"ok":true,"id":"<uuid>"}        成功，id 就是流量/踢人用的用户 ID
+   → {"ok":false,"msg":"账号已停用…"}  失败（密码错、停用、到期、运营商停用）
+```
+
+`auth` 也接受非 base64 的 `邮箱:密码`；登录名可以是邮箱，也可以是 uuid。
+
+节点侧把鉴权指到面板（register-hysteria 支持 `AUTH_URL`）：
+
+```bash
+AUTH_URL=https://hysteria.ipx.sarl/auth ./install.sh --code <运营商识别码>
+```
+
+面板 `.env` 里两个可选变量决定欢迎页显示的服务器地址：
+
+```
+HYSTERIA_PUBLIC_HOST=japan2.3ai.best   # 默认取 APP_URL 的 host
+HYSTERIA_PUBLIC_PORT=443
+```
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
@@ -145,6 +183,7 @@ curl -s -H "X-Collector-Token: $TOKEN" http://127.0.0.1:8099/api/collector/v1/no
 | `node_traffic_daily` | `node_id` `date` `tx_bytes` `rx_bytes` `online_users` | 唯一键 `(node_id, date)`，`date` 存 `Y-m-d` 字符串 |
 | `node_user_traffic` | `node_id` `user_id` `day` `tx_bytes` `rx_bytes` | 采集器回传的每用户按天累计，唯一键 `(node_id,user_id,day)` |
 | `node_user_online` | `node_id` `user_id` `connections` `seen_at` | 最近一轮在线快照，唯一键 `(node_id,user_id)` |
+| `end_users` | `provider_id` `uuid`(唯一,=Hysteria user id) `email`(唯一) `password`(hash) `status` `expires_at` `traffic_quota_bytes` `last_auth_at` `register_ip` | 终端用户，由 `/join/{code}` 自助注册或服务商后台创建 |
 | `node_kick_queue` | `uuid` `reason` `status`(pending/kicked/failed) `requested_by` `node_id` `http_status` `note` `processed_at` | 待踢队列，面板加入、采集器执行并回写 |
 
 **在线判定**：`status=active` 且 `last_seen_at` 在 `NODE_ONLINE_TTL`（默认 90s）内。

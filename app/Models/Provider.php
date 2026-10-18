@@ -25,6 +25,18 @@ class Provider extends Model
         return $this->hasMany(ProviderUser::class);
     }
 
+    /** 终端用户（该运营商的客户） */
+    public function endUsers(): HasMany
+    {
+        return $this->hasMany(EndUser::class);
+    }
+
+    /** 该运营商的公开注册页 */
+    public function joinUrl(): string
+    {
+        return url('/join/' . $this->code);
+    }
+
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;

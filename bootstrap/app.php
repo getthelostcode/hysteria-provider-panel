@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CollectorApiController;
 use App\Http\Controllers\Api\NodeRegistrationController;
+use App\Http\Controllers\HysteriaAuthController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->post('/new', [NodeRegistrationController::class, 'store'])
                 ->middleware('throttle:60,1')
                 ->name('api.nodes.register');
+
+            // Hysteria2 节点鉴权：POST /auth（节点 auth.http.url 指向这里）
+            Route::middleware(['api', 'force.json'])
+                ->post('/auth', HysteriaAuthController::class)
+                ->middleware('throttle:600,1')
+                ->name('api.auth');
 
             // 采集器专用：采集器所有数据操作都走这里，不直连面板数据库
             Route::prefix('api/collector/v1')

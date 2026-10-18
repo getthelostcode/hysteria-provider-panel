@@ -48,6 +48,40 @@ class PanelAccessTest extends TestCase
             ->assertSee('salamander');
     }
 
+    public function test_end_user_pages_in_both_panels(): void
+    {
+        $admin = Admin::factory()->create();
+        $provider = Provider::factory()->create(['code' => 'alpha01', 'name' => '服务商 A']);
+        $other = Provider::factory()->create(['code' => 'beta02', 'name' => '服务商 B']);
+
+        $mine = \App\Models\EndUser::query()->create([
+            'provider_id' => $provider->id, 'email' => 'mine@example.com',
+            'password' => 'secret123', 'status' => 'active',
+        ]);
+        $theirs = \App\Models\EndUser::query()->create([
+            'provider_id' => $other->id, 'email' => 'theirs@example.com',
+            'password' => 'secret123', 'status' => 'active',
+        ]);
+
+        // 平台后台：能看到所有运营商的用户
+        $this->actingAs($admin, 'admin')->get('/admin/end-users')
+            ->assertOk()
+            ->assertSee('mine@example.com')
+            ->assertSee('theirs@example.com');
+
+        // 服务商后台：只看自己租户的
+        $providerUser = ProviderUser::factory()->create(['provider_id' => $provider->id]);
+        $this->actingAs($providerUser, 'provider')
+            ->get("/provider/{$provider->code}/users")
+            ->assertOk()
+            ->assertSee('mine@example.com')
+            ->assertDontSee('theirs@example.com');
+
+        $this->actingAs($providerUser, 'provider')
+            ->get("/provider/{$provider->code}/users/create")
+            ->assertOk();
+    }
+
     public function test_admin_can_see_traffic_online_and_kick_queue_pages(): void
     {
         $admin = Admin::factory()->create();

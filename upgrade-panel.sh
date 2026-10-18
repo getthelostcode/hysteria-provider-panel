@@ -116,6 +116,15 @@ if [[ $DRY -eq 0 ]]; then
   info "令牌自检"
   "$PHP_BIN" artisan collector:status 2>/dev/null | sed 's/^/       /' || warn "collector:status 执行失败（旧代码？）"
 
+  # Filament 组件缓存：php artisan optimize 会把资源/页面清单缓存住，
+  # 新增的页面在缓存里没有 → 打开就是 404
+  for c in filament:optimize-clear filament:clear-cached-components; do
+    if "$PHP_BIN" artisan list 2>/dev/null | grep -q "$c"; then
+      "$PHP_BIN" artisan "$c" >/dev/null 2>&1 && ok "已清 Filament 组件缓存（$c）"
+      break
+    fi
+  done
+
   # Filament 静态资源（新增页面不需要重新构建，但补齐一下）
   if "$PHP_BIN" artisan list 2>/dev/null | grep -q 'filament:assets'; then
     "$PHP_BIN" artisan filament:assets >/dev/null 2>&1 || warn "filament:assets 失败（可忽略）"
@@ -135,6 +144,16 @@ if [[ $DRY -eq 0 ]]; then
   else
     warn "只找到 ${ROUTES:-0} 条 api/collector/v1 路由 —— 代码可能没更新到最新（git log 看看）"
   fi
+fi
+
+  info "后台页面自检（流量与在线）"
+  for path in admin/user-traffic admin/online-users admin/kick-queue; do
+    if "$PHP_BIN" artisan route:list --path="$path" 2>/dev/null | grep -q "$path"; then
+      ok "/${path} 已注册"
+    else
+      warn "/${path} 没注册（代码不是最新，或 Filament 组件缓存没清）"
+    fi
+  done
 fi
 
 # ---------------------------------------------------------------- 7. 重启
