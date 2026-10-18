@@ -56,6 +56,28 @@ class HysteriaAuthTest extends TestCase
             ->assertJson(['ok' => true, 'id' => $user->uuid]);
     }
 
+    public function test_uuid_only_auth_is_accepted(): void
+    {
+        // 二维码链接里的写法：hysteria2://<uuid>@host（auth 里只有 uuid）
+        $user = $this->user();
+
+        $this->postJson('/auth', ['addr' => '1.2.3.4:1', 'auth' => $user->uuid])
+            ->assertOk()
+            ->assertJson(['ok' => true, 'id' => $user->uuid]);
+
+        // base64(uuid) 也认
+        $this->postJson('/auth', ['addr' => '1.2.3.4:1', 'auth' => base64_encode($user->uuid)])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
+    public function test_uuid_only_auth_rejects_unknown_uuid(): void
+    {
+        $this->postJson('/auth', ['addr' => '1.2.3.4:1', 'auth' => 'unknownuuid'])
+            ->assertOk()
+            ->assertJsonPath('ok', false);
+    }
+
     public function test_uuid_with_uuid_as_password_is_accepted(): void
     {
         $user = $this->user();

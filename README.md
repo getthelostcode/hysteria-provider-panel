@@ -203,12 +203,18 @@ HYSTERIA_PUBLIC_PORT=443
 **连接链接与二维码**（服务器页每行「连接 / 二维码」）：
 
 ```
-hysteria2://<uuid>:<uuid>@<host>:443/?sni=<host>&obfs=salamander
-          &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<服务器名>
+hysteria2://<uuid>@<host>:443/?sni=<sni>&obfs=salamander
+          &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<host>
 ```
 
-- **账号与密码都是用户 uuid**（密码字段按需求用 uuid）；`/auth` 认三种凭据：
-  `uuid:uuid`（二维码/链接用）、`邮箱:密码`（门户登录那套）、`uuid:connect_token`（兼容旧链接）；
+例（IP 节点）：
+`hysteria2://wrx4…nwcul@104.223.108.120:443/?sni=bing.com&obfs=salamander&obfs-password=4f13b9…3702&pinSHA256=…%3D#104.223.108.120`
+
+- **URL 里只有账号（uuid），不带密码**；`/auth` 认四种凭据：
+  `uuid`（只有 uuid，二维码/链接用）、`uuid:uuid`、`邮箱:密码`（门户登录那套）、
+  `uuid:connect_token`（更早的链接，仍兼容）；
+- `sni`：节点 `hostname` 是域名就用它；是 IP/空则用 `URI_SNI`（默认 `bing.com`，TLS 靠 pin 校验）；
+- `#` 片段是节点地址（`#104.223.108.120`）；
 - 证书指纹取 **`register-hysteria` 上报的 `nodes.cert_pin_sha256`**（base64(SHA256(DER))），
   有就写 `pinSHA256=`、不再需要 insecure；节点没上报指纹时才退回 `insecure=1`（重跑 `install.sh` 即可补报）；
 - IPv6 主机自动加方括号；

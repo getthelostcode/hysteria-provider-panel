@@ -35,13 +35,21 @@ class HysteriaAuthController
             return response()->json(['ok' => false, 'msg' => 'missing auth'], 200);
         }
 
+        // base64 解开是纯文本就用它（客户端发的是 base64(uuid) 或 base64(uuid:密码)）
         $decoded = base64_decode($raw, true);
-        $pair = ($decoded !== false && str_contains($decoded, ':')) ? $decoded : $raw;
+        $pair = ($decoded !== false && $decoded !== '' && ctype_print($decoded)) ? $decoded : $raw;
 
-        [$login, $password] = array_pad(explode(':', $pair, 2), 2, '');
-        $login = trim($login);
+        // hysteria2:// 链接里只有 uuid（没有冒号）：login-only 模式
+        $loginOnly = ! str_contains($pair, ':');
 
-        if ($login === '' || $password === '') {
+        if ($loginOnly) {
+            [$login, $password] = [trim($pair), ''];
+        } else {
+            [$login, $password] = array_pad(explode(':', $pair, 2), 2, '');
+            $login = trim($login);
+        }
+
+        if ($login === '' || (! $loginOnly && $password === '')) {
             return response()->json(['ok' => false, 'msg' => 'bad auth format'], 200);
         }
 
@@ -56,9 +64,9 @@ class HysteriaAuthController
         }
 
         // 两种凭据都认：邮箱 + 密码（用户自己设的），或 uuid + connect_token（URL/二维码里那个）
-        $tokenOk = filled($user->connect_token) && hash_equals((string) $user->connect_token, $password);
-        // 客户端参数（二维码/链接）里密码就是 uuid，这里同样认
-        $uuidOk = hash_equals((string) $user->uuid, (string) $password);
+        $tokenOk = ! $loginOnly && filled($user->connect_token) && hash_equals((string) $user->connect_token, $password);
+        // 二维码/链接两种写法都认：uuid 单独（登录名即凭据）或 uuid:uuid
+        $uuidOk = $loginOnly || hash_equals((string) $user->uuid, (string) $password);
 
         if (! $uuidOk && ! $tokenOk && ! Hash::check($password, $user->password)) {
             return response()->json(['ok' => false, 'msg' => '账号或密码错误'], 200);
