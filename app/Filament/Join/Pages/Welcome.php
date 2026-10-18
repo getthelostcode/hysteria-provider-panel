@@ -7,6 +7,7 @@ use App\Models\Node;
 use App\Models\NodeUserOnline;
 use App\Models\NodeUserTraffic;
 use App\Models\Provider;
+use App\Support\HysteriaUri;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -195,7 +196,7 @@ class Welcome extends Page implements HasTable
             '  salamander:',
             '    password: ' . $this->provider->code,
             'tls:',
-            '  sni: ' . $host,
+            '  sni: ' . HysteriaUri::SNI,
         ], $node->tlsLines())) . "\n";
     }
 }

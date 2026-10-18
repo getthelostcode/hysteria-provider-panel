@@ -207,13 +207,13 @@ hysteria2://<uuid>@<host>:443/?sni=<sni>&obfs=salamander
           &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<host>
 ```
 
-例（IP 节点）：
+例：
 `hysteria2://wrx4…nwcul@104.223.108.120:443/?sni=bing.com&obfs=salamander&obfs-password=4f13b9…3702&pinSHA256=7AFBCAF6EE063AD5EC4FE11FE87B790FD07492D568484231029FFF3C3F2063EC#104.223.108.120`
 
 - **URL 里只有账号（uuid），不带密码**；`/auth` 认四种凭据：
   `uuid`（只有 uuid，二维码/链接用）、`uuid:uuid`、`邮箱:密码`（门户登录那套）、
   `uuid:connect_token`（更早的链接，仍兼容）；
-- `sni`：节点 `hostname` 是域名就用它；是 IP/空则用 `URI_SNI`（默认 `bing.com`，TLS 靠 pin 校验）；
+- `sni`：**固定 `bing.com`**（不随节点域名变化，TLS 只靠 pinSHA256 校验）；
 - `#` 片段是节点地址（`#104.223.108.120`）；
 - 证书指纹取 **`register-hysteria` 上报的证书 SHA256**，写成 **hex 大写、不带冒号**
   （`7A:FB:CA:…` → `7AFBCA…`）；只有 base64 的 `cert_pin_sha256` 时会自动转成 hex；

@@ -12,13 +12,16 @@ use App\Models\Node;
  *             &obfs-password=<运营商识别码>&pinSHA256=<证书SHA256，hex 无冒号>#<host>
  *
  * - 账号就是 uuid，URL 里不带密码（/auth 认「只有 uuid」的 auth）
- * - sni：节点没有域名时用 config('hysteria.uri_sni')（默认 bing.com），有域名就用域名
+ * - sni 固定为 bing.com（TLS 只靠 pinSHA256 校验，与节点域名无关）
  * - 指纹用节点上报的 cert_pin_sha256；没有才 insecure=1
  *
  * 有证书 pin 时不需要 insecure；没有则带 insecure=1（自签证书）。
  */
 class HysteriaUri
 {
+    /** 客户端/二维码里的 SNI 固定值 */
+    public const SNI = 'bing.com';
+
     public static function for(Node $node, EndUser $user, ?string $providerCode = null, ?int $port = null): string
     {
         $host = $node->hostForClient();
@@ -29,7 +32,7 @@ class HysteriaUri
         $userinfo = rawurlencode((string) $user->uuid);
 
         $query = [
-            'sni' => self::sniFor($node, $host),
+            'sni' => self::SNI,
             'obfs' => 'salamander',
             'obfs-password' => $code,
         ];
@@ -52,18 +55,6 @@ class HysteriaUri
             http_build_query($query, '', '&', PHP_QUERY_RFC3986),
             $fragment,
         );
-    }
-
-    /** 节点没有域名（hostname 是 IP 或空）时，SNI 用配置值（默认 bing.com） */
-    private static function sniFor(Node $node, string $fallbackHost): string
-    {
-        $hostname = (string) $node->hostname;
-
-        if ($hostname !== '' && filter_var($hostname, FILTER_VALIDATE_IP) === false) {
-            return $hostname;
-        }
-
-        return (string) (config('hysteria.uri_sni') ?: $fallbackHost);
     }
 
     private static function formatHost(string $host): string

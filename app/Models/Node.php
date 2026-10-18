@@ -186,6 +186,7 @@ class Node extends Model
             '  salamander:',
             "    password: {$this->obfs_password}",
             'tls:',
+            '  sni: ' . \App\Support\HysteriaUri::SNI,
         ], $this->tlsLines()));
     }
 }

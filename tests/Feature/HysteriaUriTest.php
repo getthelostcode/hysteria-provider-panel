@@ -45,7 +45,8 @@ class HysteriaUriTest extends TestCase
 
         // 只有账号（uuid），不带密码
         $this->assertStringStartsWith('hysteria2://' . $user->uuid . '@jp1.example.com:443/?', $uri);
-        $this->assertStringContainsString('sni=jp1.example.com', $uri);
+        // sni 固定 bing.com，与节点域名无关
+        $this->assertStringContainsString('sni=bing.com', $uri);
         $this->assertStringContainsString('obfs=salamander', $uri);
         $this->assertStringContainsString('obfs-password=alpha01', $uri);
         // pinSHA256 是 hex 大写、不带冒号
@@ -65,6 +66,23 @@ class HysteriaUriTest extends TestCase
         $this->assertStringContainsString('pinSHA256=7AFBCAF6EE063AD5EC4FE11FE87B790FD07492D568484231029FFF3C3F2063EC', $uri);
     }
 
+    public function test_sni_is_always_bing_com(): void
+    {
+        [$ipNode, $user] = $this->fixtures(['hostname' => null, 'ip' => '104.223.108.120']);
+
+        $domainNode = Node::factory()->create([
+            'provider_id' => $ipNode->provider_id,
+            'name' => 'jp9',
+            'hostname' => 'jp9.example.net',
+            'cert_pin_sha256' => null,
+            'cert_sha256' => null,
+        ]);
+
+        $this->assertStringContainsString('sni=bing.com', HysteriaUri::for($ipNode, $user, 'alpha01'));
+        $this->assertStringContainsString('sni=bing.com', HysteriaUri::for($domainNode, $user, 'alpha01'));
+        $this->assertStringNotContainsString('sni=jp9.example.net', HysteriaUri::for($domainNode, $user, 'alpha01'));
+    }
+
     public function test_ip_node_uses_configured_sni_and_ip_fragment(): void
     {
         // 用户给的格式：hysteria2://<uuid>@104.223.108.120:443/?sni=bing.com&…&pinSHA256=…#104.223.108.120
@@ -82,14 +100,6 @@ class HysteriaUriTest extends TestCase
         $this->assertStringContainsString('pinSHA256=', $uri);
         $this->assertStringEndsWith('#104.223.108.120', $uri);
         $this->assertStringNotContainsString('@' . $user->uuid . ':uuid', $uri);
-    }
-
-    public function test_sni_can_be_forced_by_config(): void
-    {
-        config(['hysteria.uri_sni' => 'example.org']);
-        [$node, $user] = $this->fixtures(['hostname' => null]);
-
-        $this->assertStringContainsString('sni=example.org', HysteriaUri::for($node, $user, 'alpha01'));
     }
 
     public function test_falls_back_to_insecure_without_pin(): void
