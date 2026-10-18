@@ -55,6 +55,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 });
         },
     )
+    // 显式注册 app/Console/Commands（panel:check / collector:status），避免部署后命令找不到
+    ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
