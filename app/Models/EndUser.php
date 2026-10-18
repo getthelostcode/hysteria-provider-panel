@@ -22,16 +22,17 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
     public const STATUS_DISABLED = 'disabled';
 
     protected $fillable = [
-        'provider_id', 'uuid', 'email', 'name', 'password', 'status',
+        'provider_id', 'uuid', 'email', 'name', 'password', 'connect_token', 'status',
         'traffic_quota_bytes', 'expires_at', 'last_auth_at', 'register_ip',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'connect_token'];
 
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
+            'connect_token' => 'encrypted',
             'expires_at' => 'datetime',
             'last_auth_at' => 'datetime',
             'traffic_quota_bytes' => 'integer',
@@ -43,6 +44,10 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
         static::creating(function (EndUser $user): void {
             if (empty($user->uuid)) {
                 $user->uuid = Str::lower(Str::random(32));
+            }
+
+            if (empty($user->connect_token)) {
+                $user->connect_token = Str::lower(Str::random(32));
             }
         });
     }

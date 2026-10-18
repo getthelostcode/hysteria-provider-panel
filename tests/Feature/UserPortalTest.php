@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\User\Pages\Dashboard;
+use App\Filament\User\Pages\Servers;
 use App\Models\EndUser;
 use App\Models\Node;
 use App\Models\NodeUserOnline;
@@ -159,8 +160,23 @@ class UserPortalTest extends TestCase
             ->assertSee('东京-01')
             ->assertSee('大阪-02')
             ->assertSee('我的合计')
+            ->assertSee('连接 / 二维码')
             ->assertSee('6.00 MB')    // 东京-01 上我的 3MB + 3MB
             ->assertSee('0 B');       // 大阪-02 没用过
+    }
+
+    public function test_server_action_renders_uri_and_qr(): void
+    {
+        $me = $this->user();
+
+        $component = Livewire::actingAs($me, 'end_user')->test(Servers::class);
+        $component->mountTableAction('connect', $this->nodeA->id);
+
+        $html = $component->html();
+        $this->assertStringContainsString('hysteria2://', $html);
+        $this->assertStringContainsString($me->uuid, $html);
+        $this->assertStringContainsString('<svg', $html);
+        $this->assertStringContainsString('obfs-password=alpha01', $html);
     }
 
     public function test_disabled_user_cannot_access_portal(): void

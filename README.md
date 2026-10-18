@@ -192,7 +192,21 @@ HYSTERIA_PUBLIC_PORT=443
 | 登录 | `/user/login` | 邮箱 + 密码（支持记住我）；停用/到期/运营商停用的账号登录后被拒（403） |
 | 概览 | `/user` | 累计流量、今日流量、当前连接数、可用服务器数；账号状态/到期/配额/uuid；连接方式 |
 | 使用记录 | `/user/usage` | `node_user_traffic` 明细：**日期 × 服务器 × 上行/下行/合计**，可按服务器、日期区间筛选 |
-| 服务器 | `/user/servers` | 该运营商每台服务器上**我自己**的上行/下行/合计、我的连接数、节点在线状态与最后心跳 |
+| 服务器 | `/user/servers` | 该运营商每台服务器上**我自己**的上行/下行/合计、我的连接数、节点在线状态与最后心跳；每行「连接 / 二维码」直接出 hysteria2:// 链接与二维码 |
+
+**连接链接与二维码**（服务器页每行「连接 / 二维码」）：
+
+```
+hysteria2://<uuid>:<connect_token>@<host>:443/?sni=<host>&obfs=salamander
+          &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<服务器名>
+```
+
+- 凭据是 `uuid + connect_token`（每用户随机 32 hex，`encrypted` cast 存库、`$hidden` 不外泄），
+  密码是 bcrypt 哈希没法写进 URL，所以单独发一个 token；
+- `/auth` **两种凭据都认**：`邮箱:密码` 或 `uuid:connect_token`（也可 `邮箱:token`）；
+- 有证书 pin 用 `pinSHA256=`，没有才 `insecure=1`；IPv6 主机自动加方括号；
+- 二维码由 `endroid/qr-code` 在服务端生成 SVG（不引 CDN、不落地文件），弹窗里可直接扫码，
+  同时给出链接和复制按钮；token 泄露可在服务商后台重置用户密码/停用账号后处理。
 
 实现要点：
 - `EndUser` 继承 `Authenticatable` 并实现 `FilamentUser`（`canAccessPanel` 只允许 active 且运营商正常的账号）

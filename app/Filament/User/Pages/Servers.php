@@ -3,6 +3,8 @@
 namespace App\Filament\User\Pages;
 
 use App\Models\Node;
+use App\Support\HysteriaUri;
+use App\Support\QrCodeService;
 use App\Models\NodeUserOnline;
 use App\Models\NodeUserTraffic;
 use Filament\Pages\Page;
@@ -112,6 +114,24 @@ class Servers extends Page implements HasTable
             ])
             ->defaultSort('name')
             ->paginated(false)
+            ->actions([
+                Tables\Actions\Action::make('connect')
+                    ->label('连接 / 二维码')
+                    ->icon('heroicon-m-qr-code')
+                    ->color('primary')
+                    ->modalHeading(fn (Node $record): string => '连接 ' . $record->name)
+                    ->modalDescription('手机扫二维码导入，或复制链接到客户端')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('关闭')
+                    ->modalContent(function (Node $record) use ($user) {
+                        $uri = HysteriaUri::for($record, $user, (string) $user->provider?->code);
+
+                        return view('filament.user.partials.connect', [
+                            'uri' => $uri,
+                            'qr' => QrCodeService::svg($uri),
+                        ]);
+                    }),
+            ])
             ->emptyStateHeading('服务商暂时没有可用服务器');
     }
 }

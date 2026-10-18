@@ -56,6 +56,43 @@ class HysteriaAuthTest extends TestCase
             ->assertJson(['ok' => true, 'id' => $user->uuid]);
     }
 
+    public function test_uuid_with_connect_token_is_accepted(): void
+    {
+        $user = $this->user();
+
+        $this->postJson('/auth', $this->payload($user->uuid, $user->connect_token))
+            ->assertOk()
+            ->assertJson(['ok' => true, 'id' => $user->uuid]);
+    }
+
+    public function test_email_with_connect_token_is_accepted(): void
+    {
+        $user = $this->user();
+
+        $this->postJson('/auth', $this->payload('wang@example.com', $user->connect_token))
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
+    public function test_wrong_connect_token_is_rejected(): void
+    {
+        $user = $this->user();
+
+        $this->postJson('/auth', $this->payload($user->uuid, 'not-the-token'))
+            ->assertOk()
+            ->assertJsonPath('ok', false);
+    }
+
+    public function test_disabled_user_with_valid_token_is_rejected(): void
+    {
+        $user = $this->user(['status' => EndUser::STATUS_DISABLED]);
+
+        $this->postJson('/auth', $this->payload($user->uuid, $user->connect_token))
+            ->assertOk()
+            ->assertJsonPath('ok', false)
+            ->assertJsonPath('msg', '账号已停用，请联系服务商');
+    }
+
     public function test_plain_auth_without_base64_is_accepted(): void
     {
         $this->user();
