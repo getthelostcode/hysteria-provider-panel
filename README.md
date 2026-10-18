@@ -390,6 +390,7 @@ APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/
 ```bash
 cd /var/www/hysteria-provider-panel
 bash upgrade-panel.sh --app . --url https://hysteria.ipx.sarl --restart
+php artisan panel:check        # 逐项体检，全 ✅ 才算部署完整
 ```
 
 它按顺序做：`git pull` → `composer install --no-dev` → 确保 `.env` 有 `COLLECTOR_TOKEN`（没有就生成）
@@ -409,6 +410,8 @@ bash upgrade-panel.sh --app . --url https://hysteria.ipx.sarl --restart
 | `/api/collector/v1/health` 返回 **401** | 采集器 `panel_api.token` 与面板 `COLLECTOR_TOKEN` 不一致（改过 .env 记得重建 config 缓存） |
 | `composer --version` 无输出、`timeout: failed to run command 'composer'` | 机器上只有 `php8.2` 没有 `php` 命令，而 composer 的 shebang 是 `#!/usr/bin/env php` —— 文件在也执行不了。`install.sh` 现在会自动建 `/usr/local/bin/php` 别名，并改成 `php /usr/local/bin/composer.phar` 显式调用（不再裸调 composer） |
 | 面板样式全丢 | 没跑 `php artisan filament:assets` |
+| 用户面板「连接 / 二维码」打开报错 / 二维码空白 | `git pull` 后没装新依赖（`endroid/qr-code`）：`composer install --no-dev`；现在二维码失败会降级成提示+链接，不再 500。体检：`php artisan panel:check` |
+| 部署后不确定缺什么 | `php artisan panel:check`：逐项检查 PHP/依赖/二维码库/`/auth` 等路由/`COLLECTOR_TOKEN`/数据表/标准模板/`install.sh`/storage 可写 |
 | `/new` 返回 422 `unknown_code` | `obfs_password` 与 `providers.code` 不一致；先在 `/admin/providers` 建服务商 |
 | 节点注册了但显示离线 | 还没心跳；`last_seen_at` 超 90s 即离线，可调 `NODE_ONLINE_TTL` |
 | 服务商登录后 404 | URL 必须带自己的识别码 `/provider/{code}`；跨租户会被 Filament 统一 404 |

@@ -29,11 +29,19 @@
     }'
     class="space-y-4"
 >
-    <div class="flex justify-center">
-        <div class="rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
-            {!! $qr !!}
+    @if (! empty($qr))
+        <div class="flex justify-center">
+            <div class="rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                {!! $qr !!}
+            </div>
         </div>
-    </div>
+    @else
+        <div class="rounded-lg border border-warning-300 bg-warning-50 p-3 text-sm text-warning-800 dark:border-warning-700 dark:bg-warning-950 dark:text-warning-200">
+            二维码生成失败（服务端缺少 <span class="font-mono">endroid/qr-code</span>，在面板目录跑
+            <span class="font-mono">composer install --no-dev</span>）。
+            下面的链接仍然可用，复制到客户端即可。
+        </div>
+    @endif
 
     <div>
         <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">连接链接（hysteria2://）</div>
