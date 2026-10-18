@@ -38,6 +38,12 @@
         description="每 30 秒刷新一次；最后心跳超过 {{ (int) config('hysteria.node_online_ttl', 90) }} 秒视为离线"
     >
         {{ $this->table }}
+
+        <div class="mt-4 flex flex-wrap gap-2">
+            <x-filament::button tag="a" href="{{ url('/user/login') }}" size="sm">
+                登录用户中心查看历史用量
+            </x-filament::button>
+        </div>
     </x-filament::section>
 
     <x-filament::section heading="客户端怎么用">

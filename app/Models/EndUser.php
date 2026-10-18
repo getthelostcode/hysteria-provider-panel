@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Str;
 
 /**
  * 终端用户：运营商通过 /join/{code} 页自助注册，或服务商后台手工创建。
  * uuid 是 Hysteria 的 user id（/auth 返回它，流量与踢人都以它为准）。
  */
-class EndUser extends Model
+class EndUser extends Authenticatable implements FilamentUser, HasName
 {
     use HasFactory;
 
@@ -23,7 +26,7 @@ class EndUser extends Model
         'traffic_quota_bytes', 'expires_at', 'last_auth_at', 'register_ip',
     ];
 
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
@@ -42,6 +45,18 @@ class EndUser extends Model
                 $user->uuid = Str::lower(Str::random(32));
             }
         });
+    }
+
+    /** 只有启用的账号（且运营商正常）才能进用户中心 */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $panel->getId() === 'user' && $this->isActive();
+    }
+
+    /** 用户中心右上角/头像用的显示名：昵称优先，否则邮箱 */
+    public function getFilamentName(): string
+    {
+        return (string) ($this->name ?: $this->email);
     }
 
     public function provider(): BelongsTo

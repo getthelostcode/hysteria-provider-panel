@@ -180,6 +180,25 @@ HYSTERIA_PUBLIC_HOST=japan2.3ai.best   # 默认取 APP_URL 的 host
 HYSTERIA_PUBLIC_PORT=443
 ```
 
+### 3.6 终端用户中心 `/user`（登录看用量）
+
+独立的 Filament 面板（`UserPanelProvider`，id=`user`，guard=`end_user`，Emerald 主题），
+用户用注册时的**邮箱 + 密码**登录，只能看到自己的数据：
+
+| 页面 | URL | 内容 |
+|---|---|---|
+| 登录 | `/user/login` | 邮箱 + 密码（支持记住我）；停用/到期/运营商停用的账号登录后被拒（403） |
+| 概览 | `/user` | 累计流量、今日流量、当前连接数、可用服务器数；账号状态/到期/配额/uuid；连接方式 |
+| 使用记录 | `/user/usage` | `node_user_traffic` 明细：**日期 × 服务器 × 上行/下行/合计**，可按服务器、日期区间筛选 |
+| 服务器 | `/user/servers` | 该运营商每台服务器上**我自己**的上行/下行/合计、我的连接数、节点在线状态与最后心跳 |
+
+实现要点：
+- `EndUser` 继承 `Authenticatable` 并实现 `FilamentUser`（`canAccessPanel` 只允许 active 且运营商正常的账号）
+  与 `HasName`（显示名 = 昵称或邮箱）；`config/auth.php` 新增 `end_user` guard + `end_users` provider。
+- 服务器页用子查询（`selectSub`）按当前用户聚合 `node_user_traffic` / `node_user_online`，
+  不额外建表，数据与采集器回传实时一致。
+- 默认语言改为 `zh_CN`（`APP_LOCALE=zh_CN`），Filament 自带中文翻译，登录页/表格/分页都是中文。
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |

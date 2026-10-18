@@ -49,6 +49,12 @@ return [
             'provider' => 'admins',
         ],
 
+        // 终端用户中心（/user）：运营商自己的客户
+        'end_user' => [
+            'driver' => 'session',
+            'provider' => 'end_users',
+        ],
+
         // 服务商后台（/provider/{code}）
         'provider' => [
             'driver' => 'session',
@@ -86,6 +92,11 @@ return [
 
         // 注意：这里的 provider 是「认证用户提供者」，模型是服务商后台账号 ProviderUser，
         // 不是 App\Models\Provider（那是服务商实体/租户）
+        'end_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\EndUser::class,
+        ],
+
         'providers' => [
             'driver' => 'eloquent',
             'model' => App\Models\ProviderUser::class,
