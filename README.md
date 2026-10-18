@@ -211,12 +211,27 @@ HYSTERIA_PUBLIC_PORT=443
 - 节点安装脚本**只从这里拉取**（`register-hysteria` 仓库已不再放 `config.yaml.example`），用本节点的识别码 / trafficStats 端口与 secret 覆盖后再写入 `/etc/hysteria/config.yaml`；拉取失败安装会直接退出
   （`obfs.salamander.password`、`trafficStats.listen/secret`、`tls.cert/key`、`bandwidth` 会被覆盖，其余字段原样生效）。
 
-节点侧接口：
+**服务商后台 → 配置模板**（`/provider/{code}/config-template`）：
+
+- 顶部显示当前生效来源（平台标准 / 服务商自定义）、版本、SHA256、本运营商的拉取地址；
+- 多行编辑器写自定义 `config.yaml`，保存后版本自增；**清空内容保存 = 回到平台标准**；
+- 同一页给出**一键安装命令**（含本运营商识别码），可直接复制到节点执行：
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh -o install.sh \
+    && sudo bash install.sh --code <运营商识别码>
+  ```
+  也给了 clone 后执行的等价命令，以及 `--dry-run` / `--register-only` / `--template-file` 的用法提示。
+
+生效顺序：**服务商自定义模板 > 平台标准模板**。
+
+节点侧接口（`install.sh` 会带自己的识别码）：
 
 ```
-GET /api/config-template
-{"name":"standard","version":3,"sha256":"…","updated_at":"2026-10-18T…","content":"listen: ':443'\n…"}
+GET /api/config-template?code=<运营商识别码>
+{"name":"standard","version":3,"source":"provider|standard","sha256":"…","updated_at":"…","content":"listen: ':443'\n…"}
 ```
+
+未知 code 或不带 code 都回退平台标准（不报错）。
 
 节点上报里带 `config_version`，后台节点详情的「运行状态」会显示「配置模板版本 vN」，
 方便核对节点实盘配置来自哪一版标准模板。
@@ -233,7 +248,8 @@ GET /api/config-template
 | `node_user_traffic` | `node_id` `user_id` `day` `tx_bytes` `rx_bytes` | 采集器回传的每用户按天累计，唯一键 `(node_id,user_id,day)` |
 | `node_user_online` | `node_id` `user_id` `connections` `seen_at` | 最近一轮在线快照，唯一键 `(node_id,user_id)` |
 | `end_users` | `provider_id` `uuid`(唯一,=Hysteria user id) `email`(唯一) `password`(hash) `status` `expires_at` `traffic_quota_bytes` `last_auth_at` `register_ip` | 终端用户，由 `/join/{code}` 自助注册或服务商后台创建 |
-| `config_templates` | `name`(唯一) `content` `version` `updated_by` | 标准版 Hysteria config.yaml，后台可编辑，版本自增 |
+| `config_templates` | `name`(唯一) `content` `version` `updated_by` | 平台标准版 Hysteria config.yaml，后台可编辑，版本自增 |
+| `provider_config_templates` | `provider_id`(唯一) `content` `version` `updated_by` | 服务商自定义模板，存在时覆盖平台标准 |
 | `node_kick_queue` | `uuid` `reason` `status`(pending/kicked/failed) `requested_by` `node_id` `http_status` `note` `processed_at` | 待踢队列，面板加入、采集器执行并回写 |
 
 **在线判定**：`status=active` 且 `last_seen_at` 在 `NODE_ONLINE_TTL`（默认 90s）内。

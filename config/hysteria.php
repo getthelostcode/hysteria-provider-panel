@@ -13,4 +13,10 @@ return [
     // 终端用户注册成功后展示的服务器地址（/join/{code} 的欢迎页、客户端配置）
     'public_host' => env('HYSTERIA_PUBLIC_HOST', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
     'public_port' => (int) env('HYSTERIA_PUBLIC_PORT', 443),
+
+    // 服务商后台「一键安装」用的脚本地址（register-hysteria 仓库的 install.sh）
+    'install_script_url' => env(
+        'INSTALL_SCRIPT_URL',
+        'https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh',
+    ),
 ];

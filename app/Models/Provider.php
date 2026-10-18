@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Provider extends Model
 {
@@ -23,6 +24,12 @@ class Provider extends Model
     public function providerUsers(): HasMany
     {
         return $this->hasMany(ProviderUser::class);
+    }
+
+    /** 该运营商自定义的 config.yaml（没有就用平台标准模板） */
+    public function configTemplate(): HasOne
+    {
+        return $this->hasOne(ProviderConfigTemplate::class);
     }
 
     /** 终端用户（该运营商的客户） */
