@@ -17,7 +17,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-$(pwd)}"
 PHP_BIN="${PHP_BIN:-}"
 DO_PULL=1
-DO_RESTART=0
+DO_RELOAD=1
 DRY=0
 HEALTH_URL=""
 BASE_URL=""
@@ -28,7 +28,8 @@ while [[ $# -gt 0 ]]; do
     --php) PHP_BIN="${2:?--php 需要路径}"; shift 2 ;;
     --url) BASE_URL="${2:?--url 需要面板地址}"; shift 2 ;;
     --no-pull) DO_PULL=0; shift ;;
-    --restart) DO_RESTART=1; shift ;;
+    --restart) DO_RELOAD=1; shift ;;
+    --no-reload) DO_RELOAD=0; shift ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) awk 'NR>2 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     *) echo "[FAIL] 未知参数: $1" >&2; exit 1 ;;
@@ -106,6 +107,9 @@ run "$PHP_BIN" artisan view:clear
 run "$PHP_BIN" artisan event:clear
 
 if [[ $DRY -eq 0 ]]; then
+  info "令牌自检"
+  "$PHP_BIN" artisan collector:status 2>/dev/null | sed 's/^/       /' || warn "collector:status 执行失败（旧代码？）"
+
   # Filament 静态资源（新增页面不需要重新构建，但补齐一下）
   if "$PHP_BIN" artisan list 2>/dev/null | grep -q 'filament:assets'; then
     "$PHP_BIN" artisan filament:assets >/dev/null 2>&1 || warn "filament:assets 失败（可忽略）"
@@ -128,12 +132,18 @@ if [[ $DRY -eq 0 ]]; then
 fi
 
 # ---------------------------------------------------------------- 7. 重启
-if [[ $DO_RESTART -eq 1 ]]; then
-  info "重载 PHP-FPM / 队列"
+# config:cache 换了文件内容，php-fpm 的 opcache 可能还拿着旧的（生产常配 validate_timestamps=0）
+# 默认就 reload 一次；--no-reload 可跳过
+if [[ $DO_RELOAD -eq 1 ]]; then
+  info "重载 PHP-FPM（让 opcache 丢弃旧的 config 缓存）"
   if command -v systemctl >/dev/null 2>&1; then
+    reloaded=0
     for svc in php8.2-fpm php8.3-fpm php8.fpm php-fpm; do
-      systemctl list-unit-files 2>/dev/null | grep -q "^${svc}.service" && { run systemctl reload "$svc" || true; }
+      if systemctl list-unit-files 2>/dev/null | grep -q "^${svc}.service"; then
+        run systemctl reload "$svc" && reloaded=1
+      fi
     done
+    [[ $reloaded -eq 1 ]] || warn "没找到 php-fpm 单元，若是 artisan serve/容器部署请自行重启"
   fi
 fi
 
@@ -153,7 +163,8 @@ if [[ -n "$BASE_URL" ]]; then
   case "$code" in
     200) ok "采集器接口可用" ;;
     401) warn "路由在，但 token 不一致（面板 .env 与本脚本读到的是同一个？config:cache 已重建）" ;;
-    503) warn "路由在，但 COLLECTOR_TOKEN 为空 —— 检查 .env 是否被 config:cache 之前写入" ;;
+    503) warn "路由在，但运行时 token 为空：跑 php artisan collector:status 看是 .env 没写还是 config 缓存陈旧" ;;
+    502|000) warn "面板不可达（502/超时）：确认域名/反代/后端起没起来" ;;
     404) warn "仍是 404：代码没更新到最新，或 web 服务指向了另一个目录/opcache 未刷新" ;;
   esac
 fi

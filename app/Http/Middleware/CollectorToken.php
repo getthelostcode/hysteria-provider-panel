@@ -20,6 +20,7 @@ class CollectorToken
             return response()->json([
                 'error' => 'collector_api_disabled',
                 'message' => '面板未配置 COLLECTOR_TOKEN',
+                'hint' => '若 .env 里已写入，执行 php artisan config:clear && php artisan config:cache；详见 php artisan collector:status',
             ], 503);
         }
 
