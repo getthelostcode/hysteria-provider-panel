@@ -77,11 +77,18 @@ fi
 
 # ---------------------------------------------------------------- 3. 令牌
 [[ -f .env ]] || die "缺 .env（先 cp .env.example .env && php artisan key:generate）"
-TOKEN="$(grep -E '^COLLECTOR_TOKEN=' .env | head -1 | cut -d= -f2- || true)"
+TOKEN="$(grep -E '^COLLECTOR_TOKEN=' .env | tail -1 | cut -d= -f2- || true)"
 if [[ -z "$TOKEN" ]]; then
-  TOKEN="$(openssl rand -hex 24 2>/dev/null || head -c 48 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-  printf '\nCOLLECTOR_TOKEN=%s\n' "$TOKEN" >> .env
-  ok "已写入 COLLECTOR_TOKEN（新生成）"
+  NEW_TOKEN="$(openssl rand -hex 24 2>/dev/null || head -c 48 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  if grep -qE '^COLLECTOR_TOKEN=' .env; then
+    # 键在但值为空（常见：cp .env.example 带过来的空行）→ 原地替换
+    info "COLLECTOR_TOKEN 存在但为空，写入新值"
+    run sed -i "s|^COLLECTOR_TOKEN=.*|COLLECTOR_TOKEN=${NEW_TOKEN}|" .env
+  else
+    printf '\nCOLLECTOR_TOKEN=%s\n' "$NEW_TOKEN" >> .env
+  fi
+  TOKEN="$NEW_TOKEN"
+  ok "已写入 COLLECTOR_TOKEN（新生成，长度 ${#TOKEN}）"
 else
   ok "COLLECTOR_TOKEN 已存在（长度 ${#TOKEN}）"
 fi
