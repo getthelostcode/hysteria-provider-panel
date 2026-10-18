@@ -42,7 +42,8 @@ class HysteriaUriTest extends TestCase
 
         $uri = HysteriaUri::for($node, $user, 'alpha01');
 
-        $this->assertStringStartsWith('hysteria2://' . $user->uuid . ':tokentoken123@jp1.example.com:443/?', $uri);
+        // 客户端参数里账号与密码都是 uuid
+        $this->assertStringStartsWith('hysteria2://' . $user->uuid . ':' . $user->uuid . '@jp1.example.com:443/?', $uri);
         $this->assertStringContainsString('sni=jp1.example.com', $uri);
         $this->assertStringContainsString('obfs=salamander', $uri);
         $this->assertStringContainsString('obfs-password=alpha01', $uri);

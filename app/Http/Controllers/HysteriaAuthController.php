@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
  *
  * Hysteria 发来的 body（JSON）：
  *   {"addr":"1.2.3.4:5678","auth":"<base64(email:password)>","tx":0,"rx":0}
- *   {"addr":"1.2.3.4:5678","auth":"<base64(uuid:connect_token)>","tx":0,"rx":0}
+ *   {"addr":"1.2.3.4:5678","auth":"<base64(uuid:uuid)>","tx":0,"rx":0}
  * 兼容非 base64 的明文 "email:password"。
  *
  * 返回：{"ok":true,"id":"<uuid>"} 或 {"ok":false,"msg":"原因"}
@@ -57,8 +57,10 @@ class HysteriaAuthController
 
         // 两种凭据都认：邮箱 + 密码（用户自己设的），或 uuid + connect_token（URL/二维码里那个）
         $tokenOk = filled($user->connect_token) && hash_equals((string) $user->connect_token, $password);
+        // 客户端参数（二维码/链接）里密码就是 uuid，这里同样认
+        $uuidOk = hash_equals((string) $user->uuid, (string) $password);
 
-        if (! $tokenOk && ! Hash::check($password, $user->password)) {
+        if (! $uuidOk && ! $tokenOk && ! Hash::check($password, $user->password)) {
             return response()->json(['ok' => false, 'msg' => '账号或密码错误'], 200);
         }
 

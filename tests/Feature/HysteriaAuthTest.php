@@ -56,6 +56,15 @@ class HysteriaAuthTest extends TestCase
             ->assertJson(['ok' => true, 'id' => $user->uuid]);
     }
 
+    public function test_uuid_with_uuid_as_password_is_accepted(): void
+    {
+        $user = $this->user();
+
+        $this->postJson('/auth', $this->payload($user->uuid, $user->uuid))
+            ->assertOk()
+            ->assertJson(['ok' => true, 'id' => $user->uuid]);
+    }
+
     public function test_uuid_with_connect_token_is_accepted(): void
     {
         $user = $this->user();

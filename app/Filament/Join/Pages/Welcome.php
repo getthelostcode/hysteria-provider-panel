@@ -189,7 +189,7 @@ class Welcome extends Page implements HasTable
 
         return implode("\n", array_merge([
             'server: ' . $host . ':' . $port,
-            'auth: ' . $this->user->email . ':<你设置的密码>',
+            'auth: ' . $this->user->uuid . ':' . $this->user->uuid,
             'obfs:',
             '  type: salamander',
             '  salamander:',

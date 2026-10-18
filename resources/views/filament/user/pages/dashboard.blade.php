@@ -47,7 +47,7 @@
         </dl>
     </x-filament::section>
 
-    <x-filament::section heading="怎么连" description="客户端用邮箱 + 注册时设置的密码登录">
+    <x-filament::section heading="怎么连" description="到「服务器」页点「连接 / 二维码」，扫码或复制链接即可；链接里的账号/密码就是你的用户 ID">
         <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             <p>服务器：<span class="font-mono">{{ $provider->name }}</span> 下的任一台，见「服务器」页。</p>
             <p>混淆密码（Salamander）：<span class="font-mono">{{ $provider->code }}</span></p>

@@ -197,14 +197,15 @@ HYSTERIA_PUBLIC_PORT=443
 **连接链接与二维码**（服务器页每行「连接 / 二维码」）：
 
 ```
-hysteria2://<uuid>:<connect_token>@<host>:443/?sni=<host>&obfs=salamander
+hysteria2://<uuid>:<uuid>@<host>:443/?sni=<host>&obfs=salamander
           &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<服务器名>
 ```
 
-- 凭据是 `uuid + connect_token`（每用户随机 32 hex，`encrypted` cast 存库、`$hidden` 不外泄），
-  密码是 bcrypt 哈希没法写进 URL，所以单独发一个 token；
-- `/auth` **两种凭据都认**：`邮箱:密码` 或 `uuid:connect_token`（也可 `邮箱:token`）；
-- 有证书 pin 用 `pinSHA256=`，没有才 `insecure=1`；IPv6 主机自动加方括号；
+- **账号与密码都是用户 uuid**（密码字段按需求用 uuid）；`/auth` 认三种凭据：
+  `uuid:uuid`（二维码/链接用）、`邮箱:密码`（门户登录那套）、`uuid:connect_token`（兼容旧链接）；
+- 证书指纹取 **`register-hysteria` 上报的 `nodes.cert_pin_sha256`**（base64(SHA256(DER))），
+  有就写 `pinSHA256=`、不再需要 insecure；节点没上报指纹时才退回 `insecure=1`（重跑 `install.sh` 即可补报）；
+- IPv6 主机自动加方括号；
 - 二维码由 `endroid/qr-code` 在服务端生成 SVG（不引 CDN、不落地文件），弹窗里可直接扫码，
   同时给出链接和复制按钮；token 泄露可在服务商后台重置用户密码/停用账号后处理。
 
