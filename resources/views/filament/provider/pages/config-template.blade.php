@@ -34,20 +34,21 @@
         @endif
     </x-filament::section>
 
-    {{-- 一键安装：页面中部、左对齐 --}}
+    {{-- 一键安装：页面中部、左对齐；复制时从 pre 读文本，避免引号截断属性 --}}
     <div
         class="w-full"
         x-data='{
             copied: false,
-            text: @js($installCommand),
             copy() {
+                const box = document.getElementById("install-command");
+                const text = box ? box.innerText : "";
                 const done = () => {
                     this.copied = true;
                     setTimeout(() => { this.copied = false; }, 1500);
                 };
                 const fallback = () => {
                     const el = document.createElement("textarea");
-                    el.value = this.text;
+                    el.value = text;
                     el.setAttribute("readonly", "");
                     el.style.position = "fixed";
                     el.style.opacity = "0";
@@ -57,8 +58,8 @@
                     document.body.removeChild(el);
                     done();
                 };
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(this.text).then(done).catch(fallback);
+                if (navigator.clipboard && window.isSecureContext && text) {
+                    navigator.clipboard.writeText(text).then(done).catch(fallback);
                 } else {
                     fallback();
                 }
@@ -71,7 +72,7 @@
         </p>
 
         <div class="mt-3 flex items-start gap-2">
-            <pre class="flex-1 overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-left text-sm text-gray-100">{{ $installCommand }}</pre>
+            <pre id="install-command" class="flex-1 overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-left text-sm text-gray-100">{{ $installCommand }}</pre>
             <x-filament::button type="button" color="gray" x-on:click="copy()">
                 <span x-text="copied ? '已复制' : '复制'"></span>
             </x-filament::button>

@@ -1,27 +1,24 @@
-{{-- 复制按钮：文本放在 x-data 里（单引号属性），避免 @js 的双引号截断属性；HTTPS 外用 execCommand 降级 --}}
+{{-- 复制：不把链接塞进 x-data（引号会把属性截断），复制时直接从 textarea 读 --}}
 <div
     x-data='{
         copied: false,
-        text: @js($uri),
         copy() {
+            const box = document.getElementById("connect-uri");
+            const text = box ? box.value : "";
             const done = () => {
                 this.copied = true;
                 setTimeout(() => { this.copied = false; }, 1500);
             };
-                        const fallback = () => {
-                const el = document.createElement("textarea");
-                el.value = this.text;
-                el.setAttribute("readonly", "");
-                el.style.position = "fixed";
-                el.style.opacity = "0";
-                document.body.appendChild(el);
-                el.select();
-                try { document.execCommand("copy"); } catch (e) {}
-                document.body.removeChild(el);
+            const fallback = () => {
+                if (box) {
+                    box.focus();
+                    box.select();
+                    try { document.execCommand("copy"); } catch (e) {}
+                }
                 done();
             };
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(this.text).then(done).catch(fallback);
+            if (navigator.clipboard && window.isSecureContext && text) {
+                navigator.clipboard.writeText(text).then(done).catch(fallback);
             } else {
                 fallback();
             }

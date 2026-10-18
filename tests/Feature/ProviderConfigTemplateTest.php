@@ -35,6 +35,8 @@ class ProviderConfigTemplateTest extends TestCase
             ->assertSee(url('/api/install.sh') . ' | sudo bash -s -- --code alpha01')
             ->assertSee('x-on:click="copy()"', false)
             ->assertSee('execCommand', false)
+            ->assertSee('install-command', false)
+            ->assertDontSee("text: '", false)
             // 一键安装在页面中间：在配置信息之后、模板编辑器之前
             ->assertSeeInOrder(['当前生效', '一键安装本运营商的节点', '自定义 config.yaml'])
             ->assertSee('v' . ConfigTemplate::standard()->version);

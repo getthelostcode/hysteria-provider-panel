@@ -19,6 +19,8 @@ class ConnectPartialTest extends TestCase
         $this->assertStringContainsString('<svg', $html);
         $this->assertStringContainsString('hysteria2://uuid@1.2.3.4:443', $html);
         $this->assertStringContainsString('copy()', $html);
+        $this->assertStringContainsString('getElementById(&#039;connect-uri&#039;)', str_replace("\"", "&#039;", $html));
+        $this->assertStringNotContainsString("text: '", $html);   // 不再把 URL 塞进属性（会截断）
         $this->assertStringNotContainsString('二维码生成失败', $html);
     }
 
