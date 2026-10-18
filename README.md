@@ -208,7 +208,7 @@ HYSTERIA_PUBLIC_PORT=443
 - 一个多行编辑器直接改 `config.yaml` 标准版，点「保存并递增版本」写入 `config_templates`（`version+1`、记录保存人）；
 - 「恢复默认内容」只填充表单，不保存；
 - 顶部显示当前版本、最近保存时间、保存人、内容 SHA256、拉取地址；
-- 节点安装脚本从这里拉取，用本节点的识别码 / trafficStats 端口与 secret 覆盖后再写入 `/etc/hysteria/config.yaml`
+- 节点安装脚本**只从这里拉取**（`register-hysteria` 仓库已不再放 `config.yaml.example`），用本节点的识别码 / trafficStats 端口与 secret 覆盖后再写入 `/etc/hysteria/config.yaml`；拉取失败安装会直接退出
   （`obfs.salamander.password`、`trafficStats.listen/secret`、`tls.cert/key`、`bandwidth` 会被覆盖，其余字段原样生效）。
 
 节点侧接口：

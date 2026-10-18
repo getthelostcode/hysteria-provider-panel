@@ -20,7 +20,7 @@
         </div>
         <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
             节点拉取地址：<span class="font-mono">{{ $endpoint }}</span>
-            （install.sh 用 <span class="font-mono">TEMPLATE_URL</span> 指定，失败会回退到仓库自带模板）
+            （install.sh 默认从这里拉取；拉不到会直接退出，不会用旧模板硬装）
         </p>
     </x-filament::section>
 
