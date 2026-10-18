@@ -217,12 +217,28 @@ APP_DIR=/opt/hpp APP_PORT=8099 bash install.sh                # 自定义目录/
 生产建议把 `artisan serve` 换成 php-fpm + nginx（`root public/`，`try_files $uri /index.php?$query_string`），
 反代 / Cloudflare Tunnel 后面要设 `TRUSTED_PROXIES`（默认 `127.0.0.1,::1`），否则节点 IP 会记成代理地址。
 
+### 已部署实例升级（含采集器接口）
+
+```bash
+cd /var/www/hysteria-provider-panel
+bash upgrade-panel.sh --app . --url https://hysteria.ipx.sarl --restart
+```
+
+它按顺序做：`git pull` → `composer install --no-dev` → 确保 `.env` 有 `COLLECTOR_TOKEN`（没有就生成）
+→ `migrate --force` → **清 config/route/view/event 缓存** → `config:cache` → 打印 `api/collector/v1` 路由
+→ 重载 php-fpm → 用 token 打 `/api/collector/v1/health` 自检（200/401/503/404 分别给结论）。
+
+`--dry-run` 只打印将执行的命令。**升级后必须清 route 缓存**，否则新路由一直 404。
+
 ## 10. 排错
 
 | 现象 | 原因 / 处理 |
 |---|---|
 | `require(.../vendor/autoload.php): Failed to open stream` | 依赖没装（`vendor/` 按惯例不入库）。跑 `bash dev.sh`，或手动 `php /usr/local/bin/composer.phar install`（composer 可能不在 PATH） |
 | `POST /new` 带真实 payload 返回 **500 Server Error** | 部署的是旧代码（`hostname` 未做空值保护的历史 bug）。`git pull && bash install.sh` 更新后重试 |
+| `/api/collector/v1/*` 全部 **404** `The route ... could not be found` | 两种原因：① 线上还是旧代码（没 pull）；② 代码更新了但 route 缓存没清。跑 `bash upgrade-panel.sh --url <面板地址>`，它会 pull + `route:clear` + 自检。若仍 404，检查 nginx `root` 是否指向同一个 `public/`、opcache 是否需 reload php-fpm |
+| `/api/collector/v1/health` 返回 **503** `collector_api_disabled` | `.env` 没有 `COLLECTOR_TOKEN`；写入后 `php artisan config:cache` |
+| `/api/collector/v1/health` 返回 **401** | 采集器 `panel_api.token` 与面板 `COLLECTOR_TOKEN` 不一致（改过 .env 记得重建 config 缓存） |
 | `composer --version` 无输出、`timeout: failed to run command 'composer'` | 机器上只有 `php8.2` 没有 `php` 命令，而 composer 的 shebang 是 `#!/usr/bin/env php` —— 文件在也执行不了。`install.sh` 现在会自动建 `/usr/local/bin/php` 别名，并改成 `php /usr/local/bin/composer.phar` 显式调用（不再裸调 composer） |
 | 面板样式全丢 | 没跑 `php artisan filament:assets` |
 | `/new` 返回 422 `unknown_code` | `obfs_password` 与 `providers.code` 不一致；先在 `/admin/providers` 建服务商 |
