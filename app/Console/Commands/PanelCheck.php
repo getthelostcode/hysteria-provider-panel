@@ -50,13 +50,18 @@ class PanelCheck extends Command
             $add('路由 ' . $label, Route::has($name), Route::has($name) ? '已注册' : '缺失（config/route 缓存？跑 optimize:clear）');
         }
 
-        // 3. 令牌
+        // 3. 鉴权地址
+        $authUrl = (string) config('hysteria.auth_url');
+        $add('鉴权地址（节点侧）', $authUrl !== '', $authUrl !== '' ? $authUrl : '未配置 hysteria.auth_url',
+            hard: false);
+
+        // 4. 令牌
         $collectorToken = (string) config('collector.token');
         $add('COLLECTOR_TOKEN', $collectorToken !== '',
             $collectorToken !== '' ? '已配置（长度 ' . strlen($collectorToken) . '）' : '为空 → /api/collector/v1/* 会 503',
             hard: false);
 
-        // 4. 数据库 / 迁移
+        // 5. 数据库 / 迁移
         try {
             $add('数据库', true, (string) config('database.default'));
             $add('表 end_users', Schema::hasTable('end_users'), '终端用户');
@@ -66,7 +71,7 @@ class PanelCheck extends Command
             $add('数据库', false, $e->getMessage());
         }
 
-        // 5. 模板 / 安装脚本
+        // 6. 模板 / 安装脚本
         try {
             $template = ConfigTemplate::standard();
             $add('标准模板', $template->version >= 1, 'v' . $template->version . '（' . strlen($template->content) . ' 字节）');
@@ -78,7 +83,7 @@ class PanelCheck extends Command
         $add('install.sh', $scriptInfo !== null,
             $scriptInfo ? 'sha256 ' . substr($scriptInfo['sha256'], 0, 12) . '… · ' . $scriptInfo['updated_at'] : '缺 resources/hysteria/install.sh');
 
-        // 6. 写权限
+        // 7. 写权限
         $add('storage 可写', is_writable(storage_path()), storage_path());
 
         $this->table(['', '检查项', '结果'], $rows);

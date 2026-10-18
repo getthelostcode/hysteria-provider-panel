@@ -172,7 +172,7 @@ https://hysteria.ipx.sarl/join/{operator_code}            # 302 → /register（
 节点侧把鉴权指到面板（register-hysteria 支持 `AUTH_URL`）：
 
 ```bash
-AUTH_URL=https://hysteria.ipx.sarl/auth ./install.sh --code <运营商识别码>
+AUTH_URL=https://auth.ipx.sarl/auth ./install.sh --code <运营商识别码>
 ```
 
 面板 `.env` 里两个可选变量决定欢迎页显示的服务器地址：
@@ -279,7 +279,9 @@ GET /api/config-template?code=<运营商识别码>
 
 平台后台 **系统 → 鉴权接口**（`/admin/auth-endpoint`）：
 
-- 显示 `/auth` 地址、用户数/启用数、节点侧应写的 `auth.http.url` 配置、请求体样例、curl 样例；
+- 显示节点侧应配的鉴权地址（`config/hysteria.php` 的 `auth_url`，默认 `https://auth.ipx.sarl/auth`，
+  可用 `HYSTERIA_AUTH_URL` 覆盖）、用户数/启用数、`auth.http.url` 配置、请求体样例、curl 样例；
+  地址不是面板自己时，自测会**真的发 HTTP 请求到该地址**（测的就是独立鉴权服务）；
 - **在线自测**：留空 = 只验证接口可达（返回 `missing auth` 即路由正常）；
   填 uuid = uuid 直连模式；填账号+密码 = 邮箱密码 / `uuid:token`；
   结果直接显示 `{"ok":true,"id":"…"}` 或失败原因。
@@ -287,16 +289,19 @@ GET /api/config-template?code=<运营商识别码>
 命令行等价：
 
 ```bash
-bash scripts/smoke-auth.sh                                        # 只探活
-bash scripts/smoke-auth.sh https://hysteria.ipx.sarl <uuid>       # uuid 直连
-bash scripts/smoke-auth.sh https://hysteria.ipx.sarl 'a@b.com:密码'  # 邮箱+密码
+bash scripts/smoke-auth.sh                                        # 只探活（默认 auth.ipx.sarl）
+bash scripts/smoke-auth.sh https://auth.ipx.sarl <uuid>           # uuid 直连
+bash scripts/smoke-auth.sh https://auth.ipx.sarl 'a@b.com:密码'    # 邮箱+密码
 ```
 
 线上冒烟（2026-10-18 验证）：
 
 ```
-POST https://hysteria.ipx.sarl/auth {} → 200 {"ok":false,"msg":"missing auth"}
+POST https://hysteria.ipx.sarl/auth {} → 200 {"ok":false,"msg":"missing auth"}   # 面板兜底（旧地址）
 GET  https://hysteria.ipx.sarl/auth    → 405（只接受 POST，符合 Hysteria 契约）
+
+节点侧现在用独立鉴权服务：POST https://auth.ipx.sarl/auth
+（或同机 http://127.0.0.1:8091/auth，见 https://github.com/getthelostcode/hysteria-auth）
 ```
 
 ## 4. 数据表

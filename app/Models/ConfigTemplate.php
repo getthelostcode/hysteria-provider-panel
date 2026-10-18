@@ -48,7 +48,7 @@ obfs:
 auth:
   type: http
   http:
-    url: 'https://hysteria.ipx.sarl/auth'
+    url: 'https://auth.ipx.sarl/auth'
     insecure: false
 trafficStats:
   listen: '0.0.0.0:8080'

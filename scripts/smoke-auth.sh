@@ -11,7 +11,7 @@
 #   3) 邮箱+密码      → {"ok":true,"id":"<uuid>"}
 set -euo pipefail
 
-BASE="${1:-https://hysteria.ipx.sarl}"
+BASE="${1:-https://auth.ipx.sarl}"
 CREDS="${2:-}"
 
 post() {

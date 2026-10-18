@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Filament\Pages\ConfigTemplateSettings;
 use App\Models\Admin;
 use App\Models\ConfigTemplate;
+use App\Models\Provider;
+use App\Models\ProviderConfigTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -90,5 +92,44 @@ class ConfigTemplateTest extends TestCase
             ->fillForm(['content' => ''])
             ->call('save')
             ->assertHasFormErrors(['content']);
+    }
+
+    public function test_standard_template_points_to_standalone_auth(): void
+    {
+        $this->assertStringContainsString("url: 'https://auth.ipx.sarl/auth'", ConfigTemplate::defaultContent());
+        $this->assertStringContainsString("url: 'https://auth.ipx.sarl/auth'", ConfigTemplate::standard()->content);
+    }
+
+    public function test_migration_moves_existing_templates_to_auth_domain(): void
+    {
+        $old = 'https://hysteria.ipx.sarl/auth';
+        $new = 'https://auth.ipx.sarl/auth';
+
+        $standard = ConfigTemplate::standard();
+        $standard->update([
+            'content' => str_replace($new, $old, $standard->content),
+            'version' => 7,
+        ]);
+
+        $provider = Provider::factory()->create(['code' => 'mig01', 'status' => Provider::STATUS_ACTIVE]);
+        $custom = ProviderConfigTemplate::query()->create([
+            'provider_id' => $provider->id,
+            'content' => ConfigTemplate::defaultContent(),
+            'version' => 3,
+        ]);
+        $custom->update(['content' => str_replace($new, $old, $custom->content)]);
+
+        $migration = require database_path('migrations/2026_10_18_000001_point_config_templates_to_auth_domain.php');
+        $migration->up();
+
+        $standard->refresh();
+        $custom->refresh();
+
+        $this->assertStringContainsString($new, $standard->content);
+        $this->assertStringNotContainsString($old, $standard->content);
+        $this->assertSame(8, $standard->version);
+
+        $this->assertStringContainsString($new, $custom->content);
+        $this->assertSame(4, $custom->version);
     }
 }

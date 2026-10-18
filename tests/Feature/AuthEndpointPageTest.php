@@ -38,6 +38,7 @@ class AuthEndpointPageTest extends TestCase
         $this->actingAs($admin, 'admin')->get('/admin/auth-endpoint')
             ->assertOk()
             ->assertSee('/auth')
+            ->assertSee('https://auth.ipx.sarl/auth')
             ->assertSee('鉴权接口')
             ->assertSee('auth:')
             ->assertSee('type: http');

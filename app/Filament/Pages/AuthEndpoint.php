@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 /**
  * 平台后台 → 鉴权接口（/auth）：看地址、看样例、直接拿账号试一次。
@@ -20,7 +21,7 @@ use Illuminate\Http\Request;
  *   auth:
  *     type: http
  *     http:
- *       url: https://<面板域名>/auth
+ *       url: https://auth.ipx.sarl/auth（config('hysteria.auth_url')）
  */
 class AuthEndpoint extends Page implements HasForms
 {
@@ -100,22 +101,52 @@ class AuthEndpoint extends Page implements HasForms
             ->send();
     }
 
+    /** 节点侧应配置的鉴权地址（后台展示、样例、自测都用它）。 */
+    public static function endpoint(): string
+    {
+        $url = trim((string) config('hysteria.auth_url'));
+
+        return $url !== '' ? $url : url('/auth');
+    }
+
     /** @return array<string, mixed> */
     private function callAuth(string $auth): array
     {
-        $request = Request::create(
-            '/auth',
-            'POST',
-            [],
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
-            json_encode(['addr' => '127.0.0.1:0', 'auth' => $auth, 'tx' => 0, 'rx' => 0]),
-        );
+        $payload = ['addr' => '127.0.0.1:0', 'auth' => $auth, 'tx' => 0, 'rx' => 0];
 
-        $response = app(HysteriaAuthController::class)($request);
+        // 单元测试没有外网；面板自己就是该地址时也走本地控制器
+        if (app()->runningUnitTests() || $this->isLocalEndpoint()) {
+            $request = Request::create(
+                '/auth',
+                'POST',
+                [],
+                [],
+                [],
+                ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+                json_encode($payload),
+            );
 
-        return json_decode((string) $response->getContent(), true) ?: ['raw' => (string) $response->getContent()];
+            $response = app(HysteriaAuthController::class)($request);
+
+            return json_decode((string) $response->getContent(), true) ?: ['raw' => (string) $response->getContent()];
+        }
+
+        try {
+            $response = Http::timeout(8)->acceptJson()->asJson()->post(self::endpoint(), $payload);
+
+            return json_decode($response->body(), true) ?: ['raw' => $response->body(), 'status' => $response->status()];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'msg' => '连不上 ' . self::endpoint() . '：' . $e->getMessage()];
+        }
+    }
+
+    /** 配置的地址是不是面板自己（同域名 + /auth）。 */
+    private function isLocalEndpoint(): bool
+    {
+        $host = parse_url(self::endpoint(), PHP_URL_HOST);
+        $path = parse_url(self::endpoint(), PHP_URL_PATH);
+
+        return $host !== null && $host === request()->getHost() && rtrim((string) $path, '/') === '/auth';
     }
 
     public function getTitle(): string|Htmlable
@@ -126,8 +157,10 @@ class AuthEndpoint extends Page implements HasForms
     /** @return array<string, mixed> */
     public function getViewData(): array
     {
+        $endpoint = self::endpoint();
+
         return [
-            'endpoint' => url('/auth'),
+            'endpoint' => $endpoint,
             'users' => EndUser::query()->count(),
             'activeUsers' => EndUser::query()->where('status', EndUser::STATUS_ACTIVE)->count(),
             'sampleRequest' => '{"addr":"1.2.3.4:5678","auth":"<base64(uuid)>","tx":0,"rx":0}',
@@ -136,7 +169,7 @@ class AuthEndpoint extends Page implements HasForms
                 'auth:',
                 '  type: http',
                 '  http:',
-                '    url: \'' . url('/auth') . '\'',
+                '    url: \'' . $endpoint . '\'',
                 '    insecure: false',
             ]),
         ];

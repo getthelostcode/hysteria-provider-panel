@@ -34,7 +34,7 @@
 
     <x-filament::section
         heading="在线自测"
-        description="填一个用户试一次：留空 = 只验证接口可达；只有账号 = uuid 直连模式；账号+密码 = 邮箱密码或 uuid:token"
+        description="向上面配置的地址真发一次请求：留空 = 只验证可达；只有账号 = uuid 直连模式；账号+密码 = 邮箱密码或 uuid:token"
     >
         <form wire:submit="test" class="space-y-4">
             {{ $this->form }}
