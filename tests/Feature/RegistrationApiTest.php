@@ -69,7 +69,8 @@ class RegistrationApiTest extends TestCase
         // 客户端配置改用 pinSHA256，不再 insecure
         $yaml = $node->clientConfigYaml();
         $this->assertStringContainsString('insecure: false', $yaml);
-        $this->assertStringContainsString('pinSHA256: ' . $pin, $yaml);
+        // pinSHA256 用 hex 大写无冒号
+        $this->assertStringContainsString('pinSHA256: ' . strtoupper(str_replace(':', '', $hex)), $yaml);
     }
 
     public function test_fingerprint_without_pin_still_allowed_but_keeps_insecure(): void
