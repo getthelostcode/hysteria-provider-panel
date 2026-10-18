@@ -132,6 +132,29 @@ class Node extends Model
         return sprintf('%s://%s:%d', $scheme, $host, (int) $this->traffic_port);
     }
 
+    /**
+     * 客户端 pinSHA256 用的大写 hex（不带冒号）。
+     *
+     * 优先用上报的 cert_sha256（7A:FB:… → 7AFB…），没有则把 base64 的
+     * cert_pin_sha256 转成 hex；两者都没有返回 null。
+     */
+    public function certPinHex(): ?string
+    {
+        if (filled($this->cert_sha256)) {
+            $hex = strtoupper(str_replace(':', '', (string) $this->cert_sha256));
+
+            return preg_match('/^[0-9A-F]{64}$/', $hex) ? $hex : null;
+        }
+
+        if (filled($this->cert_pin_sha256)) {
+            $raw = base64_decode((string) $this->cert_pin_sha256, true);
+
+            return $raw === false ? null : strtoupper(bin2hex($raw));
+        }
+
+        return null;
+    }
+
     /** 客户端连接用的主机名：优先 hostname，否则 IP */
     public function hostForClient(): string
     {
@@ -145,8 +168,8 @@ class Node extends Model
      */
     public function tlsLines(): array
     {
-        if (filled($this->cert_pin_sha256)) {
-            return ['  insecure: false', '  pinSHA256: ' . $this->cert_pin_sha256];
+        if (($pin = $this->certPinHex()) !== null) {
+            return ['  insecure: false', '  pinSHA256: ' . $pin];
         }
 
         return ['  insecure: true      # 自签证书；有指纹时这里会变成 pinSHA256'];

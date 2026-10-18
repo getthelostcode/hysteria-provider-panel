@@ -9,7 +9,7 @@ use App\Models\Node;
  * 生成 Hysteria2 连接 URL（可直接导入客户端 / 生成二维码）。
  *
  *   hysteria2://<uuid>@<host>:<port>/?sni=<sni>&obfs=salamander
- *             &obfs-password=<运营商识别码>&pinSHA256=<证书pin>#<host>
+ *             &obfs-password=<运营商识别码>&pinSHA256=<证书SHA256，hex 无冒号>#<host>
  *
  * - 账号就是 uuid，URL 里不带密码（/auth 认「只有 uuid」的 auth）
  * - sni：节点没有域名时用 config('hysteria.uri_sni')（默认 bing.com），有域名就用域名
@@ -34,9 +34,9 @@ class HysteriaUri
             'obfs-password' => $code,
         ];
 
-        // 指纹用 register-hysteria 上报的 cert_pin_sha256（base64(SHA256(DER))）
-        if (filled($node->cert_pin_sha256)) {
-            $query['pinSHA256'] = $node->cert_pin_sha256;
+        // 指纹用 register-hysteria 上报的证书 SHA256，hex 大写、不带冒号
+        if (($pin = $node->certPinHex()) !== null) {
+            $query['pinSHA256'] = $pin;
         } else {
             $query['insecure'] = '1';
         }

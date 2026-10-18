@@ -22,7 +22,8 @@ class HysteriaUriTest extends TestCase
             'name' => '东京-01',
             'hostname' => 'jp1.example.com',
             'ip' => '203.0.113.9',
-            'cert_pin_sha256' => 'VNqBZf+7gTlNdyIHs22KOLfTKC3TcelKDugIIo63h2M=',
+            'cert_sha256' => '7A:FB:CA:F6:EE:06:3A:D5:EC:4F:E1:1F:E8:7B:79:0F:D0:74:92:D5:68:48:42:31:02:9F:FF:3C:3F:20:63:EC',
+            'cert_pin_sha256' => 'evvK9u4GOtXsT+Ef6Ht5D9B0ktVoSEIxAp//PD8gY+w=',
         ], $nodeAttrs));
 
         $user = EndUser::query()->create([
@@ -47,9 +48,21 @@ class HysteriaUriTest extends TestCase
         $this->assertStringContainsString('sni=jp1.example.com', $uri);
         $this->assertStringContainsString('obfs=salamander', $uri);
         $this->assertStringContainsString('obfs-password=alpha01', $uri);
-        $this->assertStringContainsString('pinSHA256=' . rawurlencode('VNqBZf+7gTlNdyIHs22KOLfTKC3TcelKDugIIo63h2M='), $uri);
+        // pinSHA256 是 hex 大写、不带冒号
+        $this->assertStringContainsString('pinSHA256=7AFBCAF6EE063AD5EC4FE11FE87B790FD07492D568484231029FFF3C3F2063EC', $uri);
+        $this->assertStringNotContainsString('pinSHA256=7A%3A', $uri);
+        $this->assertStringNotContainsString('%3D', $uri);
         $this->assertStringNotContainsString('insecure', $uri);
-        $this->assertStringEndsWith('#' . rawurlencode('jp1.example.com'), $uri);
+        $this->assertStringEndsWith('#jp1.example.com', $uri);
+    }
+
+    public function test_pin_falls_back_to_hex_converted_from_base64(): void
+    {
+        [$node, $user] = $this->fixtures(['cert_sha256' => null]);
+
+        $uri = HysteriaUri::for($node, $user, 'alpha01');
+
+        $this->assertStringContainsString('pinSHA256=7AFBCAF6EE063AD5EC4FE11FE87B790FD07492D568484231029FFF3C3F2063EC', $uri);
     }
 
     public function test_ip_node_uses_configured_sni_and_ip_fragment(): void
@@ -81,7 +94,7 @@ class HysteriaUriTest extends TestCase
 
     public function test_falls_back_to_insecure_without_pin(): void
     {
-        [$node, $user] = $this->fixtures(['cert_pin_sha256' => null]);
+        [$node, $user] = $this->fixtures(['cert_pin_sha256' => null, 'cert_sha256' => null]);
 
         $uri = HysteriaUri::for($node, $user, 'alpha01');
 
@@ -101,6 +114,7 @@ class HysteriaUriTest extends TestCase
             'hostname' => null,
             'ip' => '2001:db8::1',
             'cert_pin_sha256' => null,
+            'cert_sha256' => null,
         ]);
         $this->assertStringContainsString('@[2001:db8::1]:443/', HysteriaUri::for($v6, $user, 'alpha01'));
     }

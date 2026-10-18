@@ -208,15 +208,16 @@ hysteria2://<uuid>@<host>:443/?sni=<sni>&obfs=salamander
 ```
 
 例（IP 节点）：
-`hysteria2://wrx4…nwcul@104.223.108.120:443/?sni=bing.com&obfs=salamander&obfs-password=4f13b9…3702&pinSHA256=…%3D#104.223.108.120`
+`hysteria2://wrx4…nwcul@104.223.108.120:443/?sni=bing.com&obfs=salamander&obfs-password=4f13b9…3702&pinSHA256=7AFBCAF6EE063AD5EC4FE11FE87B790FD07492D568484231029FFF3C3F2063EC#104.223.108.120`
 
 - **URL 里只有账号（uuid），不带密码**；`/auth` 认四种凭据：
   `uuid`（只有 uuid，二维码/链接用）、`uuid:uuid`、`邮箱:密码`（门户登录那套）、
   `uuid:connect_token`（更早的链接，仍兼容）；
 - `sni`：节点 `hostname` 是域名就用它；是 IP/空则用 `URI_SNI`（默认 `bing.com`，TLS 靠 pin 校验）；
 - `#` 片段是节点地址（`#104.223.108.120`）；
-- 证书指纹取 **`register-hysteria` 上报的 `nodes.cert_pin_sha256`**（base64(SHA256(DER))），
-  有就写 `pinSHA256=`、不再需要 insecure；节点没上报指纹时才退回 `insecure=1`（重跑 `install.sh` 即可补报）；
+- 证书指纹取 **`register-hysteria` 上报的证书 SHA256**，写成 **hex 大写、不带冒号**
+  （`7A:FB:CA:…` → `7AFBCA…`）；只有 base64 的 `cert_pin_sha256` 时会自动转成 hex；
+  两者都没有才退回 `insecure=1`（重跑 `install.sh` 补报指纹）；
 - IPv6 主机自动加方括号；
 - 二维码由 `endroid/qr-code` 在服务端生成 SVG（不引 CDN、不落地文件），弹窗里可直接扫码，
   同时给出链接和复制按钮；token 泄露可在服务商后台重置用户密码/停用账号后处理。
