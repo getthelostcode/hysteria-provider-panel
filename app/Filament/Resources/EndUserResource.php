@@ -6,6 +6,7 @@ use App\Filament\Resources\EndUserResource\Pages;
 use App\Models\EndUser;
 use App\Models\Provider;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -92,6 +93,25 @@ class EndUserResource extends Resource
                     ->action(fn (EndUser $record) => $record->update([
                         'status' => $record->status === 'active' ? 'disabled' : 'active',
                     ])),
+                Tables\Actions\Action::make('reset_uuid')
+                    ->label('重置 UUID')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('重置该用户的 UUID')
+                    ->modalDescription('UUID 就是客户端的账号与密码。重置后旧二维码/链接立即失效；历史流量与在线快照会迁移到新 UUID。')
+                    ->modalSubmitActionLabel('确认重置')
+                    ->action(function (EndUser $record): void {
+                        $old = $record->uuid;
+                        $new = $record->resetUuid();
+
+                        Notification::make()
+                            ->title('UUID 已重置')
+                            ->body("旧 {$old}\n新 {$new}\n让用户到用户中心重新生成二维码即可。")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make()->label('编辑'),
                 Tables\Actions\DeleteAction::make()->label('删除'),
             ]);

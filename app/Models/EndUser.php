@@ -92,6 +92,29 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
         return $this->status === self::STATUS_ACTIVE ? 'success' : 'danger';
     }
 
+    /**
+     * 重置 uuid（= 客户端账号/密码）并轮换 connect_token。
+     *
+     * 旧二维码/链接立即失效；历史流量与在线快照改挂到新 uuid，用户中心不会丢记录。
+     */
+    public function resetUuid(): string
+    {
+        $old = (string) $this->uuid;
+        $new = Str::lower(Str::random(32));
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($old, $new): void {
+            \App\Models\NodeUserTraffic::query()->where('user_id', $old)->update(['user_id' => $new]);
+            \App\Models\NodeUserOnline::query()->where('user_id', $old)->update(['user_id' => $new]);
+
+            $this->forceFill([
+                'uuid' => $new,
+                'connect_token' => Str::lower(Str::random(32)),
+            ])->save();
+        });
+
+        return $new;
+    }
+
     /** 该用户所属运营商的注册页 */
     public function joinUrl(): string
     {
