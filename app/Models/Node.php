@@ -18,7 +18,7 @@ class Node extends Model
 
     protected $fillable = [
         'provider_id', 'name', 'ip', 'hostname', 'obfs_password',
-        'traffic_port', 'traffic_secret', 'cert_sha256', 'cert_pin_sha256', 'version', 'status', 'meta',
+        'traffic_port', 'traffic_secret', 'cert_sha256', 'cert_pin_sha256', 'version', 'config_version', 'status', 'meta',
         'last_seen_at', 'last_ingest_at', 'api_token_hash',
     ];
 

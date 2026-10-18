@@ -84,6 +84,15 @@ class RegistrationApiTest extends TestCase
         $this->assertStringContainsString('insecure: true', $node->clientConfigYaml());
     }
 
+    public function test_stores_config_template_version(): void
+    {
+        Provider::factory()->create(['code' => 'carrier01']);
+
+        $this->postJson('/new', $this->payload(['config_version' => 7]))->assertCreated();
+
+        $this->assertSame(7, Node::query()->sole()->config_version);
+    }
+
     public function test_rejects_malformed_fingerprint(): void
     {
         Provider::factory()->create(['code' => 'carrier01']);

@@ -201,6 +201,26 @@ HYSTERIA_PUBLIC_PORT=443
   不额外建表，数据与采集器回传实时一致。
 - 默认语言改为 `zh_CN`（`APP_LOCALE=zh_CN`），Filament 自带中文翻译，登录页/表格/分页都是中文。
 
+### 3.7 标准版 Hysteria 配置模板（后台可编辑）
+
+平台后台 **系统 → Hysteria 配置模板**（`/admin/config-template`）：
+
+- 一个多行编辑器直接改 `config.yaml` 标准版，点「保存并递增版本」写入 `config_templates`（`version+1`、记录保存人）；
+- 「恢复默认内容」只填充表单，不保存；
+- 顶部显示当前版本、最近保存时间、保存人、内容 SHA256、拉取地址；
+- 节点安装脚本从这里拉取，用本节点的识别码 / trafficStats 端口与 secret 覆盖后再写入 `/etc/hysteria/config.yaml`
+  （`obfs.salamander.password`、`trafficStats.listen/secret`、`tls.cert/key`、`bandwidth` 会被覆盖，其余字段原样生效）。
+
+节点侧接口：
+
+```
+GET /api/config-template
+{"name":"standard","version":3,"sha256":"…","updated_at":"2026-10-18T…","content":"listen: ':443'\n…"}
+```
+
+节点上报里带 `config_version`，后台节点详情的「运行状态」会显示「配置模板版本 vN」，
+方便核对节点实盘配置来自哪一版标准模板。
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
@@ -208,11 +228,12 @@ HYSTERIA_PUBLIC_PORT=443
 | `providers` | `code`(唯一) `name` `status` | 服务商；`code` = 运营商识别码 = 租户 slug |
 | `provider_users` | `provider_id` `email` `password` | 服务商后台账号（`provider` guard） |
 | `admins` | `email` `password` | 平台后台账号（`admin` guard） |
-| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `cert_sha256` `cert_pin_sha256` `api_token_hash` `version` `status` `last_seen_at` `last_ingest_at` `meta` | 唯一键 `(provider_id, ip)` |
+| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `cert_sha256` `cert_pin_sha256` `api_token_hash` `version` `config_version` `status` `last_seen_at` `last_ingest_at` `meta` | 唯一键 `(provider_id, ip)` |
 | `node_traffic_daily` | `node_id` `date` `tx_bytes` `rx_bytes` `online_users` | 唯一键 `(node_id, date)`，`date` 存 `Y-m-d` 字符串 |
 | `node_user_traffic` | `node_id` `user_id` `day` `tx_bytes` `rx_bytes` | 采集器回传的每用户按天累计，唯一键 `(node_id,user_id,day)` |
 | `node_user_online` | `node_id` `user_id` `connections` `seen_at` | 最近一轮在线快照，唯一键 `(node_id,user_id)` |
 | `end_users` | `provider_id` `uuid`(唯一,=Hysteria user id) `email`(唯一) `password`(hash) `status` `expires_at` `traffic_quota_bytes` `last_auth_at` `register_ip` | 终端用户，由 `/join/{code}` 自助注册或服务商后台创建 |
+| `config_templates` | `name`(唯一) `content` `version` `updated_by` | 标准版 Hysteria config.yaml，后台可编辑，版本自增 |
 | `node_kick_queue` | `uuid` `reason` `status`(pending/kicked/failed) `requested_by` `node_id` `http_status` `note` `processed_at` | 待踢队列，面板加入、采集器执行并回写 |
 
 **在线判定**：`status=active` 且 `last_seen_at` 在 `NODE_ONLINE_TTL`（默认 90s）内。

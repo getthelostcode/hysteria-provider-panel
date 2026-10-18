@@ -43,6 +43,8 @@ class NodeRegistrationController
             // 证书指纹（可选）：install.sh 从 cert.pem 算出来一起上报
             'cert_sha256' => ['nullable', 'string', 'max:95', 'regex:/^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$/'],
             'cert_pin_sha256' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9+\/=]+$/'],
+            // 安装时用的标准模板版本（可选，0/缺省 = 未知）
+            'config_version' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         $provider = Provider::query()->where('code', $data['obfs_password'])->first();
@@ -78,6 +80,7 @@ class NodeRegistrationController
             'version' => $data['version'] ?? $node->version,
             'cert_sha256' => $data['cert_sha256'] ?? $node->cert_sha256,
             'cert_pin_sha256' => $data['cert_pin_sha256'] ?? $node->cert_pin_sha256,
+            'config_version' => $data['config_version'] ?? $node->config_version,
             'last_seen_at' => now(),
         ]);
 

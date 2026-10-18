@@ -152,6 +152,11 @@ class NodeResource extends Resource
                     ->color(fn (Node $record): string => $record->runtimeStatusColor()),
                 Infolists\Components\TextEntry::make('version')->label('版本')->placeholder('未上报'),
                 Infolists\Components\TextEntry::make('last_seen_at')->label('最后心跳')->since()->placeholder('从未'),
+                Infolists\Components\TextEntry::make('config_version')
+                    ->label('配置模板版本')
+                    ->badge()
+                    ->formatStateUsing(fn (?int $state): string => $state ? 'v' . $state : '未上报')
+                    ->color(fn (?int $state): string => $state ? 'info' : 'gray'),
             ])->columns(3),
 
             Infolists\Components\Section::make('客户端配置片段')->schema([

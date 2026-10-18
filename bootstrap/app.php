@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CollectorApiController;
+use App\Http\Controllers\Api\ConfigTemplateController;
 use App\Http\Controllers\Api\NodeRegistrationController;
 use App\Http\Controllers\HysteriaAuthController;
 use Illuminate\Foundation\Application;
@@ -27,6 +28,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->post('/auth', HysteriaAuthController::class)
                 ->middleware('throttle:600,1')
                 ->name('api.auth');
+
+            // 标准版 Hysteria config.yaml（register-hysteria 的 install.sh 拉取）
+            Route::middleware(['api', 'force.json'])
+                ->get('/api/config-template', [ConfigTemplateController::class, 'show'])
+                ->middleware('throttle:120,1')
+                ->name('api.config_template');
 
             // 采集器专用：采集器所有数据操作都走这里，不直连面板数据库
             Route::prefix('api/collector/v1')
