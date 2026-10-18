@@ -5,7 +5,8 @@
 #
 #   bash upgrade-panel.sh                          # 在项目目录里直接跑
 #   bash upgrade-panel.sh --app /var/www/hysteria-provider-panel
-#   bash upgrade-panel.sh --restart                # 顺带 reload php-fpm
+#   bash upgrade-panel.sh --restart                # reload php-fpm（默认已做）
+#   bash upgrade-panel.sh --dev                    # 连 dev 依赖一起装（开发机，能跑 php artisan test）
 #   bash upgrade-panel.sh --dry-run                # 只打印将执行的命令
 #
 # 用法场景：采集器报
@@ -18,6 +19,7 @@ APP_DIR="${APP_DIR:-$(pwd)}"
 PHP_BIN="${PHP_BIN:-}"
 DO_PULL=1
 DO_RELOAD=1
+WITH_DEV=0
 DRY=0
 HEALTH_URL=""
 BASE_URL=""
@@ -28,8 +30,10 @@ while [[ $# -gt 0 ]]; do
     --php) PHP_BIN="${2:?--php 需要路径}"; shift 2 ;;
     --url) BASE_URL="${2:?--url 需要面板地址}"; shift 2 ;;
     --no-pull) DO_PULL=0; shift ;;
-    --restart) DO_RELOAD=1; shift ;;
+    --restart) DO_RELOAD=1
+WITH_DEV=0; shift ;;
     --no-reload) DO_RELOAD=0; shift ;;
+    --dev) WITH_DEV=1; shift ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) awk 'NR>2 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     *) echo "[FAIL] 未知参数: $1" >&2; exit 1 ;;
@@ -67,10 +71,12 @@ info "之后提交: $(git rev-parse --short HEAD 2>/dev/null || echo '—')"
 
 # ---------------------------------------------------------------- 2. 依赖
 if [[ -f composer.json ]]; then
+  DEV_FLAG="--no-dev"
+  [[ $WITH_DEV -eq 1 ]] && DEV_FLAG=""
   if [[ -f composer.phar ]]; then
-    run "$PHP_BIN" composer.phar install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+    run "$PHP_BIN" composer.phar install --no-interaction --prefer-dist $DEV_FLAG --optimize-autoloader
   elif command -v composer >/dev/null 2>&1; then
-    run composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+    run composer install --no-interaction --prefer-dist $DEV_FLAG --optimize-autoloader
   else
     warn "没有 composer，跳过依赖安装（生产机通常已装过）"
   fi
