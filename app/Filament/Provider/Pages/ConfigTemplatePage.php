@@ -11,6 +11,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use App\Http\Controllers\Api\InstallScriptController;
 use App\Models\ConfigTemplate;
 
 /**
@@ -112,7 +113,8 @@ class ConfigTemplatePage extends Page implements HasForms
         $provider = Filament::getTenant();
         $resolved = ConfigTemplateResolver::forProvider($provider);
         $standard = ConfigTemplate::standard();
-        $script = (string) config('hysteria.install_script_url');
+        // 默认用面板自己的 /api/install.sh；INSTALL_SCRIPT_URL 可指向 CDN/镜像
+        $script = (string) (config('hysteria.install_script_url') ?: url('/api/install.sh'));
         $code = $provider->code;
 
         return [
@@ -125,6 +127,7 @@ class ConfigTemplatePage extends Page implements HasForms
             // 一行执行：拉脚本直接交给 bash（-s -- 把后面的参数传给 install.sh）
             'installCommand' => 'curl -fsSL ' . $script . ' | sudo bash -s -- --code ' . $code,
             'manualCommand' => 'curl -fsSL ' . $script . ' -o install.sh && sudo bash install.sh --code ' . $code,
+            'scriptInfo' => InstallScriptController::info(),
         ];
     }
 

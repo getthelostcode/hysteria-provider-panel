@@ -215,13 +215,25 @@ HYSTERIA_PUBLIC_PORT=443
 
 - 顶部显示当前生效来源（平台标准 / 服务商自定义）、版本、SHA256、本运营商的拉取地址；
 - 多行编辑器写自定义 `config.yaml`，保存后版本自增；**清空内容保存 = 回到平台标准**；
-- 页面**中间**给出大号「一键安装命令」（含本运营商识别码），复制到节点直接执行：
+- 页面**中间（左对齐）**给出「一键安装命令」（含本运营商识别码），复制到节点直接执行：
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh | sudo bash -s -- --code <运营商识别码>
+  curl -fsSL https://hysteria.ipx.sarl/api/install.sh | sudo bash -s -- --code <运营商识别码>
   ```
+  脚本由面板自己下发（`GET /api/install.sh`，见下），不依赖 GitHub 可访问性。
   下方还折叠了「先下载再执行」的等价命令，以及 `--dry-run` / `--register-only` / `--template-file` 的用法提示。
 
 生效顺序：**服务商自定义模板 > 平台标准模板**。
+
+#### 一键安装脚本 `/api/install.sh`
+
+- 脚本文件放在 `resources/hysteria/install.sh`（就是 `register-hysteria` 的 `install.sh`），
+  `GET /api/install.sh` 以 `text/plain` 返回，带 `X-Install-Script-Sha256` 头；
+- 页面底部会显示脚本 sha256、更新时间、体积，方便核对线上跑的是哪一版；
+- **`register-hysteria/install.sh` 更新后要同步过来**：
+  ```bash
+  cp /path/to/register-hysteria/install.sh resources/hysteria/install.sh
+  ```
+- 想走 CDN/镜像：设 `INSTALL_SCRIPT_URL=https://cdn.example.com/install.sh`（留空 = 用面板自己的 `/api/install.sh`）。
 
 节点侧接口（`install.sh` 会带自己的识别码）：
 

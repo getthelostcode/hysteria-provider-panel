@@ -14,9 +14,6 @@ return [
     'public_host' => env('HYSTERIA_PUBLIC_HOST', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
     'public_port' => (int) env('HYSTERIA_PUBLIC_PORT', 443),
 
-    // 服务商后台「一键安装」用的脚本地址（register-hysteria 仓库的 install.sh）
-    'install_script_url' => env(
-        'INSTALL_SCRIPT_URL',
-        'https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh',
-    ),
+    // 服务商后台「一键安装」用的脚本地址；留空 = 用面板自己的 /api/install.sh
+    'install_script_url' => env('INSTALL_SCRIPT_URL', ''),
 ];

@@ -34,14 +34,14 @@
         @endif
     </x-filament::section>
 
-    {{-- 一键安装：放在页面中间，直接复制到节点执行 --}}
-    <div class="mx-auto w-full max-w-3xl text-center" x-data="{ copied: false }">
+    {{-- 一键安装：页面中部、左对齐 --}}
+    <div class="w-full" x-data="{ copied: false }">
         <h2 class="text-lg font-semibold text-gray-950 dark:text-white">一键安装本运营商的节点</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             在节点（Linux，root）上粘贴执行；脚本会从面板拉当前生效的模板，渲染后安装 Hysteria 并自动注册。
         </p>
 
-        <div class="mt-4 flex items-center gap-2">
+        <div class="mt-3 flex items-start gap-2">
             <pre class="flex-1 overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-left text-sm text-gray-100">{{ $installCommand }}</pre>
             <x-filament::button
                 color="gray"
@@ -54,9 +54,15 @@
         <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
             想先看会改什么：命令后加 <span class="font-mono">--dry-run</span>；
             只重新上报注册信息加 <span class="font-mono">--register-only</span>。
+            @if ($scriptInfo)
+                <br>脚本 sha256 <span class="font-mono">{{ substr($scriptInfo['sha256'], 0, 12) }}…</span>
+                · 更新于 {{ $scriptInfo['updated_at'] }}
+                · {{ number_format($scriptInfo['bytes'] / 1024, 1) }} KB
+            @endif
         </p>
-        <details class="mt-3 text-left text-xs text-gray-500 dark:text-gray-400">
-            <summary class="cursor-pointer text-center text-primary-600">先下载再执行（便于检查脚本）</summary>
+
+        <details class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            <summary class="cursor-pointer text-primary-600">先下载再执行（便于检查脚本）</summary>
             <pre class="mt-2 overflow-x-auto rounded-lg bg-gray-100 p-3 text-gray-800 dark:bg-gray-800 dark:text-gray-100">{{ $manualCommand }}</pre>
         </details>
     </div>

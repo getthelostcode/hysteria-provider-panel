@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CollectorApiController;
 use App\Http\Controllers\Api\ConfigTemplateController;
+use App\Http\Controllers\Api\InstallScriptController;
 use App\Http\Controllers\Api\NodeRegistrationController;
 use App\Http\Controllers\HysteriaAuthController;
 use Illuminate\Foundation\Application;
@@ -28,6 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->post('/auth', HysteriaAuthController::class)
                 ->middleware('throttle:600,1')
                 ->name('api.auth');
+
+            // 一键安装脚本（服务商后台给的 curl … | bash 命令用它）
+            Route::middleware(['api'])
+                ->get('/api/install.sh', [InstallScriptController::class, 'show'])
+                ->middleware('throttle:120,1')
+                ->name('api.install_script');
 
             // 标准版 Hysteria config.yaml（register-hysteria 的 install.sh 拉取）
             Route::middleware(['api', 'force.json'])
