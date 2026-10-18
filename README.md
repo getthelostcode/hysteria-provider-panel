@@ -275,6 +275,30 @@ GET /api/config-template?code=<运营商识别码>
 节点上报里带 `config_version`，后台节点详情的「运行状态」会显示「配置模板版本 vN」，
 方便核对节点实盘配置来自哪一版标准模板。
 
+### 3.8 鉴权接口后台自测 `/admin/auth-endpoint`
+
+平台后台 **系统 → 鉴权接口**（`/admin/auth-endpoint`）：
+
+- 显示 `/auth` 地址、用户数/启用数、节点侧应写的 `auth.http.url` 配置、请求体样例、curl 样例；
+- **在线自测**：留空 = 只验证接口可达（返回 `missing auth` 即路由正常）；
+  填 uuid = uuid 直连模式；填账号+密码 = 邮箱密码 / `uuid:token`；
+  结果直接显示 `{"ok":true,"id":"…"}` 或失败原因。
+
+命令行等价：
+
+```bash
+bash scripts/smoke-auth.sh                                        # 只探活
+bash scripts/smoke-auth.sh https://hysteria.ipx.sarl <uuid>       # uuid 直连
+bash scripts/smoke-auth.sh https://hysteria.ipx.sarl 'a@b.com:密码'  # 邮箱+密码
+```
+
+线上冒烟（2026-10-18 验证）：
+
+```
+POST https://hysteria.ipx.sarl/auth {} → 200 {"ok":false,"msg":"missing auth"}
+GET  https://hysteria.ipx.sarl/auth    → 405（只接受 POST，符合 Hysteria 契约）
+```
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
