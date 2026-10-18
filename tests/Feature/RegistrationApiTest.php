@@ -50,6 +50,49 @@ class RegistrationApiTest extends TestCase
         $this->assertNotSame(str_repeat('a', 48), $raw);
     }
 
+    public function test_stores_certificate_fingerprint(): void
+    {
+        Provider::factory()->create(['code' => 'carrier01']);
+
+        $hex = implode(':', str_split(str_repeat('ab', 32), 2));
+        $pin = base64_encode(random_bytes(32));
+
+        $this->postJson('/new', $this->payload([
+            'cert_sha256' => strtoupper($hex),
+            'cert_pin_sha256' => $pin,
+        ]))->assertCreated();
+
+        $node = Node::query()->sole();
+        $this->assertSame(strtoupper($hex), $node->cert_sha256);
+        $this->assertSame($pin, $node->cert_pin_sha256);
+
+        // 客户端配置改用 pinSHA256，不再 insecure
+        $yaml = $node->clientConfigYaml();
+        $this->assertStringContainsString('insecure: false', $yaml);
+        $this->assertStringContainsString('pinSHA256: ' . $pin, $yaml);
+    }
+
+    public function test_fingerprint_without_pin_still_allowed_but_keeps_insecure(): void
+    {
+        Provider::factory()->create(['code' => 'carrier01']);
+
+        // 老版本 install.sh 只报 ip/端口/secret，完全不带指纹也要能注册
+        $this->postJson('/new', $this->payload())->assertCreated();
+
+        $node = Node::query()->sole();
+        $this->assertNull($node->cert_sha256);
+        $this->assertStringContainsString('insecure: true', $node->clientConfigYaml());
+    }
+
+    public function test_rejects_malformed_fingerprint(): void
+    {
+        Provider::factory()->create(['code' => 'carrier01']);
+
+        $this->postJson('/new', $this->payload(['cert_sha256' => 'not-a-fingerprint']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('cert_sha256');
+    }
+
     public function test_registers_without_hostname_uses_ip_as_name(): void
     {
         // register-hysteria/install.sh 实际只发这四个字段

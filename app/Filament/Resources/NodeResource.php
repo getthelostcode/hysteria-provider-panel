@@ -72,6 +72,13 @@ class NodeResource extends Resource
                 Tables\Columns\TextColumn::make('traffic_port')
                     ->label('traffic 端口')
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('cert_sha256')
+                    ->label('证书指纹')
+                    ->formatStateUsing(fn (?string $state): string => $state ? substr($state, 0, 17) . '…' : '未上报')
+                    ->copyable()
+                    ->copyableState(fn (Node $record): string => (string) $record->cert_sha256)
+                    ->tooltip(fn (Node $record): ?string => $record->cert_sha256)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('version')
                     ->label('版本')
                     ->placeholder('—')
@@ -121,6 +128,21 @@ class NodeResource extends Resource
                     ->badge()
                     ->color('gray'),
             ])->columns(3),
+
+            Infolists\Components\Section::make('TLS 证书')
+                ->description('由 register-hysteria 安装时上报；客户端可用 pinSHA256 固定证书，不必 insecure')
+                ->schema([
+                    Infolists\Components\TextEntry::make('cert_sha256')
+                        ->label('SHA256 指纹（hex）')
+                        ->copyable()
+                        ->placeholder('未上报（节点安装时没带指纹，重跑 install.sh 即可补报）')
+                        ->fontFamily('mono'),
+                    Infolists\Components\TextEntry::make('cert_pin_sha256')
+                        ->label('pinSHA256（base64，客户端用）')
+                        ->copyable()
+                        ->placeholder('—')
+                        ->fontFamily('mono'),
+                ])->columns(2),
 
             Infolists\Components\Section::make('运行状态')->schema([
                 Infolists\Components\TextEntry::make('status')

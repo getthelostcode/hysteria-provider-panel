@@ -184,10 +184,10 @@ class Welcome extends Page implements HasTable
 
     private function clientYaml(Node $node): string
     {
-        $host = $node->hostname ?: $node->ip;
+        $host = $node->hostForClient();
         $port = (int) config('hysteria.public_port', 443);
 
-        return implode("\n", [
+        return implode("\n", array_merge([
             'server: ' . $host . ':' . $port,
             'auth: ' . $this->user->email . ':<你设置的密码>',
             'obfs:',
@@ -196,7 +196,6 @@ class Welcome extends Page implements HasTable
             '    password: ' . $this->provider->code,
             'tls:',
             '  sni: ' . $host,
-            '  insecure: true',
-        ]) . "\n";
+        ], $node->tlsLines())) . "\n";
     }
 }

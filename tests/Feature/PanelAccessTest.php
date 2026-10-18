@@ -82,6 +82,26 @@ class PanelAccessTest extends TestCase
             ->assertOk();
     }
 
+    public function test_admin_node_view_shows_cert_fingerprint(): void
+    {
+        $admin = Admin::factory()->create();
+        $provider = Provider::factory()->create(['code' => 'alpha01']);
+        $hex = implode(':', str_split(str_repeat('ab', 32), 2));
+        $pin = base64_encode(random_bytes(32));
+
+        $node = Node::factory()->create([
+            'provider_id' => $provider->id,
+            'cert_sha256' => strtoupper($hex),
+            'cert_pin_sha256' => $pin,
+        ]);
+
+        $this->actingAs($admin, 'admin')->get("/admin/nodes/{$node->id}")
+            ->assertOk()
+            ->assertSee('SHA256 指纹')
+            ->assertSee($pin)
+            ->assertSee('pinSHA256');
+    }
+
     public function test_admin_can_see_traffic_online_and_kick_queue_pages(): void
     {
         $admin = Admin::factory()->create();

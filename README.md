@@ -146,6 +146,8 @@ https://hysteria.ipx.sarl/join/{operator_code}            # 302 → /register（
 ```
 
 - 用户填 **邮箱 + 密码**（≥8 位）即开通，账号归属该运营商；邮箱全局唯一。
+- 节点证书指纹（`register-hysteria` 上报）存在 `nodes.cert_sha256` / `cert_pin_sha256`；
+  面板生成客户端配置时有 pin 就用 `tls.insecure: false` + `pinSHA256`，没有才退回 `insecure: true`。
 - 注册成功页（welcome，Filament Page + Table）内容：
   - **我的账号**：状态、到期时间、流量配额、已用流量（该 uuid 累计）、用户 ID、当前在线连接数；
   - **可用服务器**（Filament Table，不分页）：该运营商所有启用节点，显示「在线 / 离线 / 未上报」徽章、
@@ -206,7 +208,7 @@ HYSTERIA_PUBLIC_PORT=443
 | `providers` | `code`(唯一) `name` `status` | 服务商；`code` = 运营商识别码 = 租户 slug |
 | `provider_users` | `provider_id` `email` `password` | 服务商后台账号（`provider` guard） |
 | `admins` | `email` `password` | 平台后台账号（`admin` guard） |
-| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `api_token_hash` `version` `status` `last_seen_at` `last_ingest_at` `meta` | 唯一键 `(provider_id, ip)` |
+| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `cert_sha256` `cert_pin_sha256` `api_token_hash` `version` `status` `last_seen_at` `last_ingest_at` `meta` | 唯一键 `(provider_id, ip)` |
 | `node_traffic_daily` | `node_id` `date` `tx_bytes` `rx_bytes` `online_users` | 唯一键 `(node_id, date)`，`date` 存 `Y-m-d` 字符串 |
 | `node_user_traffic` | `node_id` `user_id` `day` `tx_bytes` `rx_bytes` | 采集器回传的每用户按天累计，唯一键 `(node_id,user_id,day)` |
 | `node_user_online` | `node_id` `user_id` `connections` `seen_at` | 最近一轮在线快照，唯一键 `(node_id,user_id)` |

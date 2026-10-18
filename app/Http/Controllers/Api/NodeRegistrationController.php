@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
  * 节点注册入口：POST /new
  *
  * 由 register-hysteria/install.sh 在安装成功后调用：
- *   {"ip":"1.2.3.4","obfs_password":"<运营商识别码>","traffic_port":12345,"traffic_secret":"<hex>"}
+ *   {"ip":"1.2.3.4","obfs_password":"<运营商识别码>","traffic_port":12345,"traffic_secret":"<hex>",
+ *    "cert_sha256":"AB:CD:…","cert_pin_sha256":"base64(SHA256(DER))"}
  *
  * 语义：obfs_password 就是服务商的「运营商识别码」，用它定位 provider；
  * 同一 provider 下按 ip upsert，重复注册只会刷新端口/secret 并重新签发 token。
@@ -39,6 +40,9 @@ class NodeRegistrationController
             'traffic_secret' => ['required', 'string', 'min:8', 'max:128'],
             'hostname' => ['nullable', 'string', 'max:190'],
             'version' => ['nullable', 'string', 'max:32'],
+            // 证书指纹（可选）：install.sh 从 cert.pem 算出来一起上报
+            'cert_sha256' => ['nullable', 'string', 'max:95', 'regex:/^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$/'],
+            'cert_pin_sha256' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9+\/=]+$/'],
         ]);
 
         $provider = Provider::query()->where('code', $data['obfs_password'])->first();
@@ -72,6 +76,8 @@ class NodeRegistrationController
             'traffic_secret' => $data['traffic_secret'],
             'hostname' => $data['hostname'] ?? $node->hostname,
             'version' => $data['version'] ?? $node->version,
+            'cert_sha256' => $data['cert_sha256'] ?? $node->cert_sha256,
+            'cert_pin_sha256' => $data['cert_pin_sha256'] ?? $node->cert_pin_sha256,
             'last_seen_at' => now(),
         ]);
 
