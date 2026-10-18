@@ -19,7 +19,7 @@ class Node extends Model
     protected $fillable = [
         'provider_id', 'name', 'ip', 'hostname', 'obfs_password',
         'traffic_port', 'traffic_secret', 'version', 'status', 'meta',
-        'last_seen_at', 'api_token_hash',
+        'last_seen_at', 'last_ingest_at', 'api_token_hash',
     ];
 
     protected $hidden = ['traffic_secret', 'api_token_hash'];
@@ -30,6 +30,7 @@ class Node extends Model
             'traffic_secret' => 'encrypted',
             'meta' => 'array',
             'last_seen_at' => 'datetime',
+            'last_ingest_at' => 'datetime',
         ];
     }
 
@@ -113,6 +114,16 @@ class Node extends Model
         }
 
         return static::query()->where('api_token_hash', hash('sha256', $plain))->first();
+    }
+
+    /** 采集器访问该节点 Traffic Stats API 的地址（IPv6 加方括号） */
+    public function collectorApiBase(string $scheme = 'http'): string
+    {
+        $host = filter_var($this->ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false
+            ? $this->ip
+            : '[' . $this->ip . ']';
+
+        return sprintf('%s://%s:%d', $scheme, $host, (int) $this->traffic_port);
     }
 
     /** 面板里给运维直接复制的客户端配置（服务器端口固定 443，由 install.sh 的 listen 决定） */

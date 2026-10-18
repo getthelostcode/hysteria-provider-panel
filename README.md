@@ -107,6 +107,33 @@ Authorization: Bearer nd_xxx
 
 `GET /up` → 200（Laravel 内置）
 
+### 3.4 采集器接口 `/api/collector/v1/*`（hysteria-traffic-collector 用）
+
+采集器不直连数据库，全部走这组接口；鉴权头 `X-Collector-Token: <COLLECTOR_TOKEN>`。
+`COLLECTOR_TOKEN` 为空时整组返回 **503**，填了但头不对返回 **401**。
+
+| 方法 | 路径 | 用途 |
+|---|---|---|
+| GET | `/health` | 探活 + 待踢数 |
+| GET | `/nodes` | 启用中节点（节点 active + 服务商 active）：`id name hostname api_base secret traffic_port provider` |
+| POST | `/ingest` | `{node_id, polled_at, users:[{user_id,tx,rx}], online:[{user_id,connections}]}` |
+| GET | `/kick-queue?limit=` | 待踢 uuid（只返回 pending） |
+| POST | `/kick-result` | `{id, node_id, http_status, note}` → `kicked`(2xx) / `failed` |
+
+```bash
+TOKEN=$(grep '^COLLECTOR_TOKEN=' .env | cut -d= -f2)
+curl -s -H "X-Collector-Token: $TOKEN" http://127.0.0.1:8099/api/collector/v1/nodes
+```
+
+`ingest` 语义：
+- 按「节点 + 用户 + UTC 日期」累加 `node_user_traffic`（tx/rx 都是**增量**）；
+- `online` 非 null 时整体替换该节点 `node_user_online`（null/缺省表示本轮保留旧快照）；
+- 同时更新 `nodes.last_seen_at` 与 `nodes.last_ingest_at`；
+- **幂等**：`polled_at` 不新于 `last_ingest_at` 的批次直接丢弃，返回 `{"ok":true,"duplicate":true}`。
+
+面板后台新增三个页面（「流量与在线」分组）：**用户流量**（按节点/用户/日期查）、
+**在线用户**（最近一轮快照 + 连接数）、**待踢队列**（新建 uuid 即入队，采集器 30s 内发现在线就踢）。
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
@@ -114,8 +141,11 @@ Authorization: Bearer nd_xxx
 | `providers` | `code`(唯一) `name` `status` | 服务商；`code` = 运营商识别码 = 租户 slug |
 | `provider_users` | `provider_id` `email` `password` | 服务商后台账号（`provider` guard） |
 | `admins` | `email` `password` | 平台后台账号（`admin` guard） |
-| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `api_token_hash` `version` `status` `last_seen_at` `meta` | 唯一键 `(provider_id, ip)` |
+| `nodes` | `provider_id` `ip` `obfs_password` `traffic_port` `traffic_secret`(加密) `api_token_hash` `version` `status` `last_seen_at` `last_ingest_at` `meta` | 唯一键 `(provider_id, ip)` |
 | `node_traffic_daily` | `node_id` `date` `tx_bytes` `rx_bytes` `online_users` | 唯一键 `(node_id, date)`，`date` 存 `Y-m-d` 字符串 |
+| `node_user_traffic` | `node_id` `user_id` `day` `tx_bytes` `rx_bytes` | 采集器回传的每用户按天累计，唯一键 `(node_id,user_id,day)` |
+| `node_user_online` | `node_id` `user_id` `connections` `seen_at` | 最近一轮在线快照，唯一键 `(node_id,user_id)` |
+| `node_kick_queue` | `uuid` `reason` `status`(pending/kicked/failed) `requested_by` `node_id` `http_status` `note` `processed_at` | 待踢队列，面板加入、采集器执行并回写 |
 
 **在线判定**：`status=active` 且 `last_seen_at` 在 `NODE_ONLINE_TTL`（默认 90s）内。
 

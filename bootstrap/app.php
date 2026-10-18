@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CollectorApiController;
 use App\Http\Controllers\Api\NodeRegistrationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,11 +20,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->post('/new', [NodeRegistrationController::class, 'store'])
                 ->middleware('throttle:60,1')
                 ->name('api.nodes.register');
+
+            // 采集器专用：采集器所有数据操作都走这里，不直连面板数据库
+            Route::prefix('api/collector/v1')
+                ->middleware(['api', 'force.json', 'collector.token', 'throttle:600,1'])
+                ->name('api.collector.')
+                ->group(function (): void {
+                    Route::get('/health', [CollectorApiController::class, 'health'])->name('health');
+                    Route::get('/nodes', [CollectorApiController::class, 'nodes'])->name('nodes');
+                    Route::post('/ingest', [CollectorApiController::class, 'ingest'])->name('ingest');
+                    Route::get('/kick-queue', [CollectorApiController::class, 'kickQueue'])->name('kick_queue');
+                    Route::post('/kick-result', [CollectorApiController::class, 'kickResult'])->name('kick_result');
+                });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
+            'collector.token' => \App\Http\Middleware\CollectorToken::class,
         ]);
         // 面板/接口常部署在 Cloudflare Tunnel 或 nginx 后面，需按可信代理推导真实 IP
         $middleware->trustProxies(

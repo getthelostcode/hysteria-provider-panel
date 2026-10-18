@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class NodeUserTraffic extends Model
+{
+    use HasFactory;
+
+    protected $table = 'node_user_traffic';
+
+    protected $fillable = ['node_id', 'user_id', 'day', 'tx_bytes', 'rx_bytes'];
+
+    protected function casts(): array
+    {
+        return ['tx_bytes' => 'integer', 'rx_bytes' => 'integer'];
+    }
+
+    public function node(): BelongsTo
+    {
+        return $this->belongsTo(Node::class);
+    }
+
+    public function totalBytes(): int
+    {
+        return (int) $this->tx_bytes + (int) $this->rx_bytes;
+    }
+
+    public static function human(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        $i = 0;
+        $value = (float) $bytes;
+
+        while ($value >= 1024 && $i < count($units) - 1) {
+            $value /= 1024;
+            $i++;
+        }
+
+        return $i === 0 ? sprintf('%d %s', $value, $units[$i]) : sprintf('%.2f %s', $value, $units[$i]);
+    }
+}

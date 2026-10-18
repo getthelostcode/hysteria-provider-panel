@@ -48,6 +48,29 @@ class PanelAccessTest extends TestCase
             ->assertSee('salamander');
     }
 
+    public function test_admin_can_see_traffic_online_and_kick_queue_pages(): void
+    {
+        $admin = Admin::factory()->create();
+        $provider = Provider::factory()->create(['code' => 'alpha01']);
+        $node = Node::factory()->create(['provider_id' => $provider->id, 'name' => 'node-alpha']);
+
+        \App\Models\NodeUserTraffic::query()->create([
+            'node_id' => $node->id, 'user_id' => 'wang', 'day' => now()->toDateString(),
+            'tx_bytes' => 1024, 'rx_bytes' => 2048,
+        ]);
+        \App\Models\NodeUserOnline::query()->create([
+            'node_id' => $node->id, 'user_id' => 'wang', 'connections' => 2, 'seen_at' => now(),
+        ]);
+        \App\Models\NodeKickQueue::query()->create([
+            'uuid' => 'wang', 'reason' => 'quota', 'status' => \App\Models\NodeKickQueue::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin, 'admin')->get('/admin/user-traffic')->assertOk()->assertSee('wang');
+        $this->actingAs($admin, 'admin')->get('/admin/online-users')->assertOk()->assertSee('wang');
+        $this->actingAs($admin, 'admin')->get('/admin/kick-queue')->assertOk()->assertSee('wang');
+        $this->actingAs($admin, 'admin')->get('/admin/kick-queue/create')->assertOk();
+    }
+
     public function test_admin_cannot_enter_provider_panel(): void
     {
         $admin = Admin::factory()->create();
