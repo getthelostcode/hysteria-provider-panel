@@ -44,6 +44,12 @@ class Node extends Model
         return $this->hasMany(NodeTrafficDaily::class);
     }
 
+    /** 终端用户在线快照（采集器每轮整体替换） */
+    public function onlineUsers(): HasMany
+    {
+        return $this->hasMany(NodeUserOnline::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);

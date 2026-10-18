@@ -136,19 +136,22 @@ curl -s -H "X-Collector-Token: $TOKEN" http://127.0.0.1:8099/api/collector/v1/no
 
 ### 3.5 终端用户注册 `/join/{code}` 与 Hysteria `/auth`
 
-每个运营商一个公开注册页（`code` 就是租户标识，也是节点 obfs 密码）：
+每个运营商一个公开注册页，**用独立的 Filament 面板实现**（`JoinPanelProvider`，id=`join`，
+面板路径 `join/{code}`，无登录、无后台导航，Emerald 主题与后台一致；`code` 就是租户标识，也是节点 obfs 密码）：
 
 ```
-https://hysteria.ipx.sarl/join/{operator_code}        # 例：/join/4f13b9d93a8afb6e98283702
+https://hysteria.ipx.sarl/join/{operator_code}/register   # 注册表单（Filament Form）
+https://hysteria.ipx.sarl/join/{operator_code}/welcome    # 开通结果（Filament Table 列服务器）
+https://hysteria.ipx.sarl/join/{operator_code}            # 302 → /register（旧链接兼容）
 ```
 
 - 用户填 **邮箱 + 密码**（≥8 位）即开通，账号归属该运营商；邮箱全局唯一。
-- 注册成功页（welcome）内容：
+- 注册成功页（welcome，Filament Page + Table）内容：
   - **我的账号**：状态、到期时间、流量配额、已用流量（该 uuid 累计）、用户 ID、当前在线连接数；
-  - **可用服务器**：该运营商所有启用节点，逐台显示「在线 / 离线 / 未上报」、在线人数、连接数、
-    最后心跳（相对时间 + 绝对时间）、节点版本；
-  - **客户端配置**：每台节点一份可直接复制的 YAML（`server` 用节点 `hostname`，混淆密码 = 运营商标识）；
-    停用节点与其它运营商的节点不会出现。
+  - **可用服务器**（Filament Table，不分页）：该运营商所有启用节点，显示「在线 / 离线 / 未上报」徽章、
+    在线人数、连接数、最后心跳（相对 + 绝对时间）、节点版本；停用节点与其它运营商的节点不会出现；
+  - **客户端配置**：每行一个「客户端配置」动作，弹窗给出可直接复制的 YAML
+    （`server` 用节点 `hostname`，混淆密码 = 运营商标识）。
 - 服务商后台 → **用户**（`/provider/{code}/users`）：看本运营商用户、停用/启用、改密、手工建号，
   右上角「注册链接」直接弹出该运营商的 `/join/{code}`。
 - 平台后台 → **终端用户**（`/admin/end-users`）：跨运营商总览、按运营商筛选、停用/启用。
