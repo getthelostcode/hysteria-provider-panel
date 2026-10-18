@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\EndUser;
+use App\Models\Node;
+use App\Models\NodeUserOnline;
+use App\Models\NodeUserTraffic;
 use App\Models\Provider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,14 +74,76 @@ class PublicJoinController
             'user' => $user,
             'host' => config('hysteria.public_host'),
             'port' => config('hysteria.public_port'),
-            'clientYaml' => $this->clientYaml($provider, $user),
+            'servers' => $this->servers($provider, $user),
+            'myOnline' => NodeUserOnline::query()
+                ->where('user_id', $user->uuid)
+                ->with('node:id,name,hostname,ip')
+                ->orderBy('node_id')
+                ->get(),
+            'myTraffic' => NodeUserTraffic::query()
+                ->where('user_id', $user->uuid)
+                ->selectRaw('coalesce(sum(tx_bytes),0) as tx, coalesce(sum(rx_bytes),0) as rx')
+                ->first(),
         ]);
     }
 
-    /** 注册成功后给用户复制的客户端配置（密码用占位符，不落日志/不回显明文） */
-    private function clientYaml(Provider $provider, EndUser $user): string
+    /**
+     * 该运营商的所有可用服务器 + 实时状态（在线人数 / 连接数 / 最后心跳）。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function servers(Provider $provider, EndUser $user): array
     {
-        $host = (string) config('hysteria.public_host');
+        $nodes = Node::query()
+            ->where('provider_id', $provider->id)
+            ->where('status', Node::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get();
+
+        $stats = NodeUserOnline::query()
+            ->whereIn('node_id', $nodes->pluck('id'))
+            ->selectRaw('node_id, count(*) as online_users, coalesce(sum(connections),0) as connections')
+            ->groupBy('node_id')
+            ->get()
+            ->keyBy('node_id');
+
+        $ttl = (int) config('hysteria.node_online_ttl', 90);
+
+        return $nodes->map(function (Node $node) use ($stats, $user, $provider, $ttl): array {
+            $stat = $stats->get($node->id);
+            $lastSeen = $node->last_seen_at;
+            $isOnline = $lastSeen !== null && $lastSeen->gt(now()->subSeconds($ttl));
+
+            if (! $lastSeen) {
+                [$statusLabel, $statusColor] = ['未上报', 'gray'];
+            } elseif ($isOnline) {
+                [$statusLabel, $statusColor] = ['在线', 'green'];
+            } else {
+                [$statusLabel, $statusColor] = ['离线', 'red'];
+            }
+
+            return [
+                'id' => $node->id,
+                'name' => $node->name ?: ($node->hostname ?: $node->ip),
+                'host' => $node->hostname ?: $node->ip,
+                'port' => (int) config('hysteria.public_port', 443),
+                'status_label' => $statusLabel,
+                'status_color' => $statusColor,
+                'online_users' => (int) ($stat->online_users ?? 0),
+                'connections' => (int) ($stat->connections ?? 0),
+                'last_seen' => $lastSeen,
+                'last_seen_human' => $lastSeen?->copy()->locale('zh_CN')->diffForHumans() ?? '从未',
+                'version' => $node->version ?: '—',
+                'yaml' => $this->clientYaml($provider, $user, $node->hostname ?: $node->ip),
+            ];
+        })->all();
+    }
+
+    /** 注册成功后给用户复制的客户端配置（密码用占位符，不落日志/不回显明文） */
+    private function clientYaml(Provider $provider, EndUser $user, ?string $serverHost = null): string
+    {
+        $host = $serverHost ?: (string) config('hysteria.public_host');
         $port = (int) config('hysteria.public_port');
 
         return implode("\n", [
