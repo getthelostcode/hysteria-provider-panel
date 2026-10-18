@@ -34,6 +34,33 @@
         @endif
     </x-filament::section>
 
+    {{-- 一键安装：放在页面中间，直接复制到节点执行 --}}
+    <div class="mx-auto w-full max-w-3xl text-center" x-data="{ copied: false }">
+        <h2 class="text-lg font-semibold text-gray-950 dark:text-white">一键安装本运营商的节点</h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            在节点（Linux，root）上粘贴执行；脚本会从面板拉当前生效的模板，渲染后安装 Hysteria 并自动注册。
+        </p>
+
+        <div class="mt-4 flex items-center gap-2">
+            <pre class="flex-1 overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-left text-sm text-gray-100">{{ $installCommand }}</pre>
+            <x-filament::button
+                color="gray"
+                x-on:click="window.navigator.clipboard.writeText(@js($installCommand)); copied = true; setTimeout(() => copied = false, 1500)"
+            >
+                <span x-text="copied ? '已复制' : '复制'"></span>
+            </x-filament::button>
+        </div>
+
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            想先看会改什么：命令后加 <span class="font-mono">--dry-run</span>；
+            只重新上报注册信息加 <span class="font-mono">--register-only</span>。
+        </p>
+        <details class="mt-3 text-left text-xs text-gray-500 dark:text-gray-400">
+            <summary class="cursor-pointer text-center text-primary-600">先下载再执行（便于检查脚本）</summary>
+            <pre class="mt-2 overflow-x-auto rounded-lg bg-gray-100 p-3 text-gray-800 dark:bg-gray-800 dark:text-gray-100">{{ $manualCommand }}</pre>
+        </details>
+    </div>
+
     <form wire:submit="save" class="space-y-4">
         {{ $this->form }}
 
@@ -44,36 +71,4 @@
             </x-filament::button>
         </div>
     </form>
-
-    <x-filament::section
-        heading="一键安装命令"
-        description="在节点上以 root 执行（脚本会从面板拉本运营商的模板，渲染后安装并注册）"
-    >
-        <div class="space-y-3">
-            <div
-                class="flex items-start gap-2"
-                x-data="{ copied: false }"
-            >
-                <pre class="flex-1 overflow-x-auto rounded-lg bg-gray-950 p-3 text-xs text-gray-100">{{ $installCommand }}</pre>
-                <x-filament::button
-                    color="gray"
-                    size="sm"
-                    x-on:click="window.navigator.clipboard.writeText(@js($installCommand)); copied = true; setTimeout(() => copied = false, 1500)"
-                >
-                    <span x-text="copied ? '已复制' : '复制'"></span>
-                </x-filament::button>
-            </div>
-
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-                或者 clone 后执行（便于查看脚本、重跑）：
-            </p>
-            <pre class="overflow-x-auto rounded-lg bg-gray-100 p-3 text-xs text-gray-800 dark:bg-gray-800 dark:text-gray-100">{{ $manualCommand }}</pre>
-
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-                常用附加参数：<span class="font-mono">--dry-run</span>（只看渲染结果）、
-                <span class="font-mono">--register-only</span>（只重新上报）、
-                <span class="font-mono">--template-file /path/config.yaml</span>（离线用本地模板）。
-            </p>
-        </div>
-    </x-filament::section>
 </x-filament-panels::page>

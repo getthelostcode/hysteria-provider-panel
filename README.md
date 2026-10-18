@@ -215,12 +215,11 @@ HYSTERIA_PUBLIC_PORT=443
 
 - 顶部显示当前生效来源（平台标准 / 服务商自定义）、版本、SHA256、本运营商的拉取地址；
 - 多行编辑器写自定义 `config.yaml`，保存后版本自增；**清空内容保存 = 回到平台标准**；
-- 同一页给出**一键安装命令**（含本运营商识别码），可直接复制到节点执行：
+- 页面**中间**给出大号「一键安装命令」（含本运营商识别码），复制到节点直接执行：
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh -o install.sh \
-    && sudo bash install.sh --code <运营商识别码>
+  curl -fsSL https://raw.githubusercontent.com/getthelostcode/register-hysteria/main/install.sh | sudo bash -s -- --code <运营商识别码>
   ```
-  也给了 clone 后执行的等价命令，以及 `--dry-run` / `--register-only` / `--template-file` 的用法提示。
+  下方还折叠了「先下载再执行」的等价命令，以及 `--dry-run` / `--register-only` / `--template-file` 的用法提示。
 
 生效顺序：**服务商自定义模板 > 平台标准模板**。
 

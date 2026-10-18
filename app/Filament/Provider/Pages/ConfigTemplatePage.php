@@ -122,8 +122,9 @@ class ConfigTemplatePage extends Page implements HasForms
             'standardVersion' => $standard->version,
             'standardUpdatedAt' => $standard->updated_at?->format('Y-m-d H:i:s') ?? '—',
             'endpoint' => url('/api/config-template') . '?code=' . $code,
-            'installCommand' => 'curl -fsSL ' . $script . ' -o install.sh && sudo bash install.sh --code ' . $code,
-            'manualCommand' => 'git clone https://github.com/getthelostcode/register-hysteria.git && cd register-hysteria && sudo ./install.sh --code ' . $code,
+            // 一行执行：拉脚本直接交给 bash（-s -- 把后面的参数传给 install.sh）
+            'installCommand' => 'curl -fsSL ' . $script . ' | sudo bash -s -- --code ' . $code,
+            'manualCommand' => 'curl -fsSL ' . $script . ' -o install.sh && sudo bash install.sh --code ' . $code,
         ];
     }
 

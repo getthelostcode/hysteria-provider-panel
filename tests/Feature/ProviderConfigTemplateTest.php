@@ -30,8 +30,11 @@ class ProviderConfigTemplateTest extends TestCase
             ->get('/provider/alpha01/config-template')
             ->assertOk()
             ->assertSee('平台标准模板')
-            ->assertSee('一键安装命令')
-            ->assertSee('--code alpha01')
+            ->assertSee('一键安装本运营商的节点')
+            ->assertSee('curl -fsSL')
+            ->assertSee('| sudo bash -s -- --code alpha01')
+            // 一键安装在页面中间：在配置信息之后、模板编辑器之前
+            ->assertSeeInOrder(['当前生效', '一键安装本运营商的节点', '自定义 config.yaml'])
             ->assertSee('v' . ConfigTemplate::standard()->version);
     }
 
