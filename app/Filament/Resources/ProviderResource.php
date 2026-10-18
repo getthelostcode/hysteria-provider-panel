@@ -83,6 +83,19 @@ class ProviderResource extends Resource
                     ->label('后台账号')
                     ->badge()
                     ->color('gray'),
+                Tables\Columns\TextColumn::make('end_users_count')
+                    ->counts('endUsers')
+                    ->label('终端用户')
+                    ->badge()
+                    ->color('info'),
+                Tables\Columns\TextColumn::make('join_url')
+                    ->label('注册页')
+                    ->state(fn (Provider $record): string => '/join/' . $record->code)
+                    ->copyable()
+                    ->copyableState(fn (Provider $record): string => $record->joinUrl())
+                    ->url(fn (Provider $record): string => $record->joinUrl())
+                    ->openUrlInNewTab()
+                    ->icon('heroicon-m-link'),
                 Tables\Columns\TextColumn::make('status')
                     ->label('状态')
                     ->badge()
