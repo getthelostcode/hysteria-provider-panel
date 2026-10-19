@@ -41,6 +41,8 @@ class AuthEndpoint extends Page implements HasForms
 
     protected static ?int $navigationSort = 91;
 
+    public const DEFAULT_ENDPOINT = 'https://auth.ipx.sarl/auth';
+
     /** @var array<string, mixed> */
     public ?array $data = [];
 
@@ -104,9 +106,10 @@ class AuthEndpoint extends Page implements HasForms
     /** 节点侧应配置的鉴权地址（后台展示、样例、自测都用它）。 */
     public static function endpoint(): string
     {
-        $url = trim((string) config('hysteria.auth_url'));
+        // 默认值写死：即使生产 config 缓存是旧的（没有 auth_url 键），也不会退回面板旧地址
+        $url = trim((string) config('hysteria.auth_url', self::DEFAULT_ENDPOINT));
 
-        return $url !== '' ? $url : url('/auth');
+        return $url !== '' ? $url : self::DEFAULT_ENDPOINT;
     }
 
     /** @return array<string, mixed> */

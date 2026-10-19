@@ -44,6 +44,20 @@ class AuthEndpointPageTest extends TestCase
             ->assertSee('type: http');
     }
 
+    public function test_endpoint_falls_back_to_auth_domain_without_config_key(): void
+    {
+        config(['hysteria.auth_url' => null]);
+
+        $this->assertSame('https://auth.ipx.sarl/auth', AuthEndpoint::endpoint());
+    }
+
+    public function test_endpoint_respects_env_override(): void
+    {
+        config(['hysteria.auth_url' => 'https://custom.example/auth']);
+
+        $this->assertSame('https://custom.example/auth', AuthEndpoint::endpoint());
+    }
+
     public function test_empty_auth_proves_endpoint_alive(): void
     {
         $admin = Admin::factory()->create();
