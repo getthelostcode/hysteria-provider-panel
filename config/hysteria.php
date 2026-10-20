@@ -17,6 +17,9 @@ return [
     // 服务商后台「一键安装」用的脚本地址；留空 = 用面板自己的 /api/install.sh
     'install_script_url' => env('INSTALL_SCRIPT_URL', ''),
 
+    // 服务商自助注册入口（/provider-signup）；不想要公开注册就设 false
+    'provider_signup_enabled' => (bool) env('PROVIDER_SIGNUP_ENABLED', true),
+
     // 节点侧 auth.http.url（独立鉴权服务）；面板本地 /auth 仍保留作兜底
     'auth_url' => env('HYSTERIA_AUTH_URL', 'https://auth.ipx.sarl/auth'),
 ];

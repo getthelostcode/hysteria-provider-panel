@@ -304,6 +304,26 @@ GET  https://hysteria.ipx.sarl/auth    → 405（只接受 POST，符合 Hysteri
 （或同机 http://127.0.0.1:8091/auth，见 https://github.com/getthelostcode/hysteria-auth）
 ```
 
+### 3.9 服务商自助注册 `/provider-signup`
+
+服务商自己开通，不用平台管理员手工建：
+
+```
+GET  /provider-signup        注册表单（运营商名称、识别码、登录邮箱、密码、联系方式）
+POST /provider-signup        建 providers + provider_users，自动登录并跳到 /provider/{code}
+```
+
+- **登录账号就是注册时填的邮箱 + 密码**，属于 `provider` guard，只能进自己那一个租户
+- 识别码可留空自动生成（`p` + 10 位随机），手输大写会自动转小写；格式限制小写字母/数字/`-`/`_`
+- 同时校验识别码、邮箱唯一；密码至少 8 位且两次一致（`password_confirmation`）
+- 注册成功即 `active`，直接可用；服务商登录页底部有「注册服务商」入口
+- 关掉公开注册：`.env` 加 `PROVIDER_SIGNUP_ENABLED=false`（两个路由都 404）
+- 防刷：POST 限流 10 次/分钟/IP；后台「服务商」列表能看到自助注册的运营商（`notes` 记录来源时间）
+
+```bash
+curl -s https://<面板域名>/provider-signup | grep -o '<title>.*</title>'
+```
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
