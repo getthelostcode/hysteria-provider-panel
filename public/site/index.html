@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070b12">
+<title>Hysteria2 节点控制面 · 一条命令装节点，一套后台管运营</title>
+<meta name="description" content="Hysteria2 节点运营控制面：一键安装节点、平台/服务商两级后台、终端用户自助注册、流量计量与踢人、独立 HTTP 鉴权。个人自用省事，公司多团队可隔离运营。">
+<meta property="og:title" content="Hysteria2 节点控制面">
+<meta property="og:description" content="一条命令装节点，一套后台管用户与流量。开源可自托管，支持多运营商租户与独立鉴权。">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>
+/* 任意静态托管下都能解析 assets/：目录入口补斜杠（/site → /site/） */
+if (!/\/$/.test(location.pathname) && !/index\.html$/.test(location.pathname)) {
+  location.replace(location.pathname + '/');
+}
+</script>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+
+<header class="nav" id="nav">
+  <div class="shell nav-inner">
+    <a class="brand" href="#top" aria-label="Hysteria2 控制面首页">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.6 20.5 7v10L12 21.4 3.5 17V7L12 2.6Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M8.2 13.6 12 8l3.8 5.6M9.4 16.2h5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span>Hysteria2 <em>Control</em></span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navMenu" aria-label="打开菜单">
+      <span></span><span></span>
+    </button>
+
+    <nav class="nav-menu" id="navMenu" aria-label="主导航">
+      <a href="#scenes">场景</a>
+      <a href="#capabilities">能力</a>
+      <a href="#architecture">架构</a>
+      <a href="#quickstart">快速开始</a>
+      <a href="#faq">常见问题</a>
+      <a class="btn btn-ghost nav-cta" href="https://hysteria.ipx.sarl/admin" rel="noopener">打开控制台</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Hero：左边说清楚，右边给真实终端输出 -->
+  <section class="hero" id="top">
+    <div class="hero-grid-bg" aria-hidden="true"></div>
+    <div class="shell hero-grid">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> Hysteria2 节点运营控制面</p>
+        <h1>把 Hysteria2 节点<br>管成一套系统</h1>
+        <p class="lede">
+          一条命令装节点，一套后台管用户，一张看板看流量。
+          个人自用不用记配置；公司多团队也能各管各的，不用再靠脚本和表格。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#quickstart">看怎么装</a>
+          <a class="btn btn-ghost" href="#architecture">看架构</a>
+        </div>
+        <ul class="hero-facts">
+          <li>开源可自托管</li>
+          <li>平台 / 服务商两级后台</li>
+          <li>鉴权可独立部署</li>
+        </ul>
+      </div>
+
+      <div class="hero-term reveal" aria-label="安装脚本真实输出示例">
+        <div class="term-bar">
+          <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="term-title">install.sh · 真实输出</span>
+        </div>
+        <pre class="term-body"><code><span class="c-dim">$</span> curl -fsSL https://hysteria.ipx.sarl/api/install.sh \
+    | sudo bash -s -- --code <span class="c-acc">xingyun01</span>
+
+<span class="c-ok">[ OK ]</span> 已获取服务商自定义模板 v4（113 字节）
+<span class="c-ok">[ OK ]</span> 生成证书：CN=xingyun01.example.com（10 年）
+<span class="c-ok">[ OK ]</span> 写入 /etc/hysteria/config.yaml（auth → auth.ipx.sarl）
+<span class="c-ok">[ OK ]</span> hysteria-server 已重启
+<span class="c-ok">[ OK ]</span> 节点已注册：id=<span class="c-acc">17</span> · 指纹已上报
+<span class="c-ok">[ OK ]</span> trafficStats 就绪 · UDP 443 监听中</code></pre>
+        <div class="term-foot">
+          <span>证书自动生成</span><span>模板按运营商下发</span><span>失败不阻断</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="strip reveal" aria-label="技术栈">
+    <div class="shell strip-inner">
+      <span class="strip-label">跑在真实技术栈上</span>
+      <ul>
+        <li>Hysteria2</li>
+        <li>Laravel 11</li>
+        <li>Filament 3</li>
+        <li>Go 1.23</li>
+        <li>MySQL / SQLite</li>
+        <li>Redis</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 两种人：个人 / 公司，讲不同的话 -->
+  <section class="section" id="scenes">
+    <div class="shell">
+      <header class="section-head reveal">
+        <p class="kicker">谁在用</p>
+        <h2>同一个控制面，两种用法</h2>
+        <p class="section-sub">个人要的是“装完就能用”，公司要的是“谁都能用，但互相看不见”。</p>
+      </header>
+
+      <div class="scenes">
+        <article class="scene reveal">
+          <div class="scene-top">
+            <span class="scene-tag">个人</span>
+            <h3>自建、自用、顺手分享</h3>
+          </div>
+          <p class="scene-lede">
+            一两台 VPS，几个朋友。装完就有二维码和 <code>hysteria2://</code> 链接，
+            谁用多少、什么时候到期，用户中心自己看。
+          </p>
+          <ul class="checks">
+            <li>一台机器一条命令，证书、systemd、注册一次做完</li>
+            <li>每个朋友一个账号，不用把节点密码发给所有人</li>
+            <li>停用 / 到期 / 超额，面板点一下，连接被踢下线</li>
+            <li>客户端链接带证书指纹，自签证书也不用关校验</li>
+          </ul>
+          <div class="scene-foot">
+            <span class="mini">典型规模</span>
+            <span>1–3 台节点 · 10–50 个账号</span>
+          </div>
+        </article>
+
+        <article class="scene scene-company reveal">
+          <div class="scene-top">
+            <span class="scene-tag scene-tag-alt">公司</span>
+            <h3>多团队、多运营商，各管各的</h3>
+          </div>
+          <p class="scene-lede">
+            平台方管全局，运营商管自己的节点和用户。每个运营商一个识别码、一个注册页、
+            一套模板——数据互相隔离，后台也互相看不见。
+          </p>
+          <ul class="checks">
+            <li>平台 / 服务商两级后台，租户按运营商识别码隔离</li>
+            <li>终端用户自助注册 <code>/join/{code}</code>，不用人工开号</li>
+            <li>鉴权独立成服务，面板升级、重启不影响节点鉴权</li>
+            <li>采集器只走面板 API：不直连库、不落第二份数据</li>
+          </ul>
+          <div class="scene-foot">
+            <span class="mini">典型规模</span>
+            <span>多运营商 · 每运营商多节点 · 用户自助增长</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 能力：一行一件事，配真实片段，不做等权卡片墙 -->
+  <section class="section section-alt" id="capabilities">
+    <div class="shell">
+      <header class="section-head reveal">
+        <p class="kicker">能力</p>
+        <h2>运营里最烦的四件事，做进产品里</h2>
+      </header>
+
+      <div class="rows">
+        <article class="row reveal">
+          <div class="row-copy">
+            <span class="row-num">01</span>
+            <h3>装节点：一条命令，拉的是“你的”配置</h3>
+            <p>
+              安装脚本按运营商识别码拉模板（服务商自定义优先，否则平台标准），渲染端口、混淆密码、
+              鉴权地址，自动生成证书并上报指纹，最后注册进面板。装完就是可用的节点，不是半成品。
+            </p>
+            <ul class="ticks">
+              <li>模板改完，节点重装即生效，不用逐台改 YAML</li>
+              <li>注册失败只告警、不阻断，payload 落盘可补报</li>
+              <li>systemd、防火墙、trafficStats 一起配好</li>
+            </ul>
+          </div>
+          <div class="row-code">
+            <div class="code-head">标准模板（面板可改）</div>
+            <pre><code>auth:
+  type: http
+  http:
+    url: 'https://auth.ipx.sarl/auth'
+    insecure: false
+trafficStats:
+  listen: '0.0.0.0:8080'
+  secret: <span class="c-acc">per-node</span></code></pre>
+          </div>
+        </article>
+
+        <article class="row row-rev reveal">
+          <div class="row-copy">
+            <span class="row-num">02</span>
+            <h3>多租户：不是加个字段，是整条链路隔离</h3>
+            <p>
+              运营商识别码同时是租户 slug、节点混淆密码、用户注册入口。后台、节点、终端用户、
+              配置模板都挂在它下面；平台方看全局，服务商只看见自己。
+            </p>
+            <ul class="ticks">
+              <li>每个运营商独立注册页与用户池</li>
+              <li>平台可下发标准模板，服务商可覆盖自己的</li>
+              <li>一套代码，两级权限，互不越界</li>
+            </ul>
+          </div>
+          <div class="row-code">
+            <div class="code-head">入口各自独立</div>
+            <pre><code>/provider/<span class="c-acc">{code}</span>          服务商后台
+/join/<span class="c-acc">{code}</span>              终端用户注册
+/user                     用户中心（用量 / 连接）
+/admin                    平台后台（全局）
+/api/collector/v1/*       采集器 API</code></pre>
+          </div>
+        </article>
+
+        <article class="row reveal">
+          <div class="row-copy">
+            <span class="row-num">03</span>
+            <h3>流量与在线：能看，也能立刻动手</h3>
+            <p>
+              采集器轮询节点 trafficStats，按用户累计增量回传面板；在线快照、按天用量、
+              待踢队列都在后台。超量或停用，进队列，采集器执行踢人并回执。
+            </p>
+            <ul class="ticks">
+              <li>按天聚合，用户中心能看“每个服务器用了多少”</li>
+              <li>在线 / 离线 / 最后心跳，一眼判断节点状态</li>
+              <li>踢人有队列与结果回执，不是发出去就不管</li>
+            </ul>
+          </div>
+          <div class="row-code">
+            <div class="code-head">采集器 → 面板</div>
+            <pre><code>GET  /api/collector/v1/nodes
+POST /api/collector/v1/ingest
+GET  /api/collector/v1/kick-queue
+POST /api/collector/v1/kick-result
+<span class="c-dim"># 采集器不连数据库，面板是唯一数据源</span></code></pre>
+          </div>
+        </article>
+
+        <article class="row row-rev reveal">
+          <div class="row-copy">
+            <span class="row-num">04</span>
+            <h3>鉴权：独立进程，节点不存用户密码</h3>
+            <p>
+              Hysteria 的 HTTP 鉴权抽成单二进制服务，直接读面板库：uuid 直连、邮箱密码、
+              连接令牌三种凭据都认。面板重启、升级、换框架，都不影响已经连着的节点。
+            </p>
+            <ul class="ticks">
+              <li>永远 200 + <code>ok:false</code>，符合 Hysteria 契约</li>
+              <li>bcrypt 校验 + Laravel 加密令牌解密</li>
+              <li>可只读运行；<code>cache_ttl</code> 控制停用生效速度</li>
+            </ul>
+          </div>
+          <div class="row-code">
+            <div class="code-head">节点侧只认一个地址</div>
+            <pre><code>POST https://auth.ipx.sarl/auth
+{"addr":"1.2.3.4:5678","auth":"<span class="c-acc">&lt;base64(uuid)&gt;</span>"}
+
+→ {"ok":true,"id":"&lt;uuid&gt;"}
+→ {"ok":false,"msg":"账号已停用，请联系服务商"}</code></pre>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 架构 -->
+  <section class="section" id="architecture">
+    <div class="shell">
+      <header class="section-head reveal">
+        <p class="kicker">架构</p>
+        <h2>四块，各干一件事</h2>
+        <p class="section-sub">节点只管连和跑，面板只管数据，鉴权独立，采集器只搬数据。</p>
+      </header>
+
+      <figure class="arch reveal">
+        <svg viewBox="0 0 1040 440" role="img" aria-label="架构图：客户端连接节点，节点向鉴权服务校验，采集器轮询节点流量并通过面板 API 回传">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 10 5 0 10Z" fill="#5b6b85"/>
+            </marker>
+            <marker id="arrowAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 10 5 0 10Z" fill="#34d399"/>
+            </marker>
+          </defs>
+
+          <!-- 客户端 -->
+          <g class="node-box">
+            <rect x="24" y="170" width="150" height="92" rx="12"/>
+            <text x="99" y="206" class="t-title" text-anchor="middle">客户端</text>
+            <text x="99" y="228" class="t-sub" text-anchor="middle">Hysteria2</text>
+            <text x="99" y="247" class="t-sub" text-anchor="middle">扫码 / 链接</text>
+          </g>
+
+          <!-- 节点 -->
+          <g class="node-box node-box-accent">
+            <rect x="248" y="120" width="232" height="192" rx="12"/>
+            <text x="364" y="152" class="t-title" text-anchor="middle">节点</text>
+            <line x1="270" y1="168" x2="458" y2="168" class="div"/>
+            <text x="364" y="192" class="t-sub" text-anchor="middle">hysteria-server</text>
+            <text x="364" y="215" class="t-sub" text-anchor="middle">trafficStats :8080</text>
+            <text x="364" y="238" class="t-sub" text-anchor="middle">auth.type = http</text>
+            <text x="364" y="261" class="t-sub" text-anchor="middle">证书 pinSHA256</text>
+            <text x="364" y="288" class="t-sub-dim" text-anchor="middle">install.sh 装好的</text>
+          </g>
+
+          <!-- 鉴权 -->
+          <g class="node-box">
+            <rect x="248" y="20" width="232" height="72" rx="12"/>
+            <text x="364" y="48" class="t-title" text-anchor="middle">hysteria-auth</text>
+            <text x="364" y="71" class="t-sub" text-anchor="middle">独立 Go 服务 · POST /auth</text>
+          </g>
+
+          <!-- 面板 -->
+          <g class="node-box node-box-accent">
+            <rect x="560" y="120" width="222" height="192" rx="12"/>
+            <text x="671" y="152" class="t-title" text-anchor="middle">控制面（Laravel）</text>
+            <line x1="582" y1="168" x2="760" y2="168" class="div"/>
+            <text x="671" y="192" class="t-sub" text-anchor="middle">平台后台 /admin</text>
+            <text x="671" y="215" class="t-sub" text-anchor="middle">服务商后台 /provider</text>
+            <text x="671" y="238" class="t-sub" text-anchor="middle">用户中心 / 注册页</text>
+            <text x="671" y="261" class="t-sub" text-anchor="middle">/api/collector/v1/*</text>
+            <text x="671" y="284" class="t-sub-dim" text-anchor="middle">用户 · 节点 · 流量 · 模板</text>
+          </g>
+
+          <!-- 采集器 -->
+          <g class="node-box">
+            <rect x="852" y="150" width="164" height="132" rx="12"/>
+            <text x="934" y="184" class="t-title" text-anchor="middle">采集器</text>
+            <text x="934" y="207" class="t-sub" text-anchor="middle">Go · 轮询 / 回传</text>
+            <text x="934" y="230" class="t-sub" text-anchor="middle">踢人队列</text>
+            <text x="934" y="256" class="t-sub-dim" text-anchor="middle">不落库</text>
+          </g>
+
+          <!-- 连线 -->
+          <!-- 客户端 → 节点 -->
+          <path d="M174 216 H244" class="link" marker-end="url(#arrow)"/>
+          <text x="209" y="205" class="t-label" text-anchor="middle">连接</text>
+
+          <!-- 节点 → 鉴权 -->
+          <path d="M364 116 V96" class="link" marker-end="url(#arrow)"/>
+          <text x="392" y="112" class="t-label">鉴权</text>
+
+          <!-- 节点 → 面板：注册 / 心跳 -->
+          <path d="M480 216 H556" class="link" marker-end="url(#arrow)"/>
+          <text x="518" y="205" class="t-label" text-anchor="middle">注册 / 心跳</text>
+
+          <!-- 面板 ↔ 采集器：任务下发 / 数据回传 -->
+          <path d="M782 216 H848" class="link" marker-end="url(#arrowAcc)" marker-start="url(#arrowAcc)"/>
+          <text x="815" y="205" class="t-label" text-anchor="middle">API</text>
+
+          <!-- 采集器 → 节点：轮询 trafficStats（走底部，避开面板） -->
+          <path d="M934 282 V392 H364 V316" class="link link-dim" marker-end="url(#arrow)"/>
+          <text x="640" y="384" class="t-label t-label-dim" text-anchor="middle">trafficStats 轮询（按用户取增量）</text>
+        </svg>
+        <figcaption>实线：控制面调用；虚线：采集器读取节点流量。用户数据只在面板库里。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 快速开始 -->
+  <section class="section section-alt" id="quickstart">
+    <div class="shell quick-grid">
+      <div class="quick-copy reveal">
+        <p class="kicker">快速开始</p>
+        <h2>三步，从零到能连</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-n">1</span>
+            <div>
+              <h3>装面板</h3>
+              <p>Laravel + MySQL/SQLite，一条命令建库、迁移、起服务；平台后台建运营商，拿识别码。</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">2</span>
+            <div>
+              <h3>装节点</h3>
+              <p>在节点上粘贴命令，模板、证书、systemd、注册一次完成。</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">3</span>
+            <div>
+              <h3>给用户开号</h3>
+              <p>把 <code>/join/{code}</code> 发给用户，他自己注册；登录用户中心拿链接和二维码。</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="quick-code reveal">
+        <div class="code-head">
+          <span>在节点上执行</span>
+          <button class="copy" data-copy="curl -fsSL https://hysteria.ipx.sarl/api/install.sh | sudo bash -s -- --code 你的识别码" aria-label="复制安装命令">复制</button>
+        </div>
+        <pre><code>curl -fsSL https://hysteria.ipx.sarl/api/install.sh \
+  | sudo bash -s -- --code <span class="c-acc">你的识别码</span></code></pre>
+
+        <div class="code-head code-head-2">
+          <span>验证鉴权（应为 missing auth）</span>
+          <button class="copy" data-copy='curl -s https://auth.ipx.sarl/auth -H "Content-Type: application/json" -d "{}"' aria-label="复制鉴权自测命令">复制</button>
+        </div>
+        <pre><code>curl -s https://auth.ipx.sarl/auth \
+  -H 'Content-Type: application/json' -d '{}'
+<span class="c-dim">→</span> {"ok":false,"msg":"missing auth"}</code></pre>
+
+        <div class="code-head code-head-2">
+          <span>用户注册入口</span>
+          <button class="copy" data-copy="https://hysteria.ipx.sarl/join/你的识别码" aria-label="复制注册链接">复制</button>
+        </div>
+        <pre><code>https://hysteria.ipx.sarl/join/<span class="c-acc">你的识别码</span></code></pre>
+        <p class="quick-note">安装脚本支持 <code>--dry-run</code>、<code>--register-only</code>、<code>--gen-cert</code>，先在测试机跑一遍再上生产。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 对比 -->
+  <section class="section" id="compare">
+    <div class="shell">
+      <header class="section-head reveal">
+        <p class="kicker">对比</p>
+        <h2>脚本堆出来的运营，和一套系统</h2>
+      </header>
+      <div class="table-wrap reveal">
+        <table>
+          <thead>
+            <tr><th scope="col">环节</th><th scope="col">脚本 + 表格</th><th scope="col">这套控制面</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>装节点</td><td>手动改 YAML、传证书、写 unit</td><td>一条命令：模板 / 证书 / 注册 / 重启</td></tr>
+            <tr><td>改配置</td><td>逐台 SSH，改完忘了哪台是哪个版本</td><td>面板改模板，节点重装或重新拉取，版本可见</td></tr>
+            <tr><td>开用户</td><td>手工拼 uuid、算密码、发文件</td><td>自助注册页，或后台一键建号</td></tr>
+            <tr><td>看流量</td><td>各节点 trafficStats 各看各的</td><td>按用户 / 按天 / 按节点聚合，在线快照</td></tr>
+            <tr><td>停人 / 到期</td><td>改配置重启，用户重连失败</td><td>踢人队列，节点执行并回执</td></tr>
+            <tr><td>多团队</td><td>再复制一套脚本，数据混在一起</td><td>运营商租户隔离，各有入口与用户池</td></tr>
+            <tr><td>鉴权</td><td>写死在节点或面板里，升级就断</td><td>独立服务，节点只认一个 URL</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section-alt" id="faq">
+    <div class="shell faq-grid">
+      <header class="section-head reveal">
+        <p class="kicker">常见问题</p>
+        <h2>上手前会问的几件事</h2>
+        <p class="section-sub">更多细节在仓库 README，问题可以直接开 issue。</p>
+      </header>
+
+      <div class="faq reveal">
+        <details>
+          <summary>必须有自己的域名和公网 IP 吗？</summary>
+          <p>节点需要公网可达（UDP）。域名不是必须的：自签证书也能用，面板会把证书指纹下发给客户端，用 <code>pinSHA256</code> 固定，不用关 TLS 校验。有域名就填域名，证书 SAN 会一起带上。</p>
+        </details>
+        <details>
+          <summary>支持哪些系统？</summary>
+          <p>安装脚本面向 Linux（systemd），amd64 / arm64 都可；采集器和鉴权服务是静态 Go 二进制，交叉编译后丢上去就能跑。面板需要 PHP 8.2+ 与 MySQL 8 / SQLite。</p>
+        </details>
+        <details>
+          <summary>多运营商是怎么隔离的？</summary>
+          <p>运营商识别码是租户主键：服务商后台按它分租户，终端用户挂在运营商下，注册页是 <code>/join/{code}</code>，节点安装时也用它拉自己的配置模板。平台方在 <code>/admin</code> 看全局，服务商只能看到自己的数据。</p>
+        </details>
+        <details>
+          <summary>为什么把鉴权单独拆出来？</summary>
+          <p>鉴权是连接链路上的热路径，面板是管理面。拆开后面板升级、重启、甚至换实现，都不会打断节点鉴权；鉴权服务也可以只读数据库、单独扩容。协议保持不变：<code>POST /auth</code> 永远 200，体里给 <code>ok</code> 与 <code>msg</code>。</p>
+        </details>
+        <details>
+          <summary>流量数据存在哪？采集器会直连数据库吗？</summary>
+          <p>只存在面板库。采集器通过面板 API 拿节点清单、回传增量、领取踢人任务，不直连数据库、不落第二份数据——少一个要备份、要对齐的地方。</p>
+        </details>
+        <details>
+          <summary>能商用 / 二次开发吗？</summary>
+          <p>代码在 GitHub 上，可自托管、可改。公司要多运营商、私有部署、对接自有计费或工单，按你们的流程改就行；需要人一起落地可以走仓库 issue 联系。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="shell cta-inner reveal">
+      <div>
+        <h2>先在一台测试机上跑通，再决定要不要全量</h2>
+        <p>面板、节点、鉴权、采集器都能单独部署，跑通了再逐台切。</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-primary" href="#quickstart">拿安装命令</a>
+        <a class="btn btn-ghost" href="https://github.com/getthelostcode" rel="noopener">看源码</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="shell footer-grid">
+    <div class="footer-brand">
+      <a class="brand" href="#top">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.6 20.5 7v10L12 21.4 3.5 17V7L12 2.6Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M8.2 13.6 12 8l3.8 5.6M9.4 16.2h5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Hysteria2 <em>Control</em></span>
+      </a>
+      <p>节点安装、多租户后台、流量计量、独立鉴权。<br>个人省事，公司可隔离运营。</p>
+    </div>
+
+    <nav class="footer-col" aria-label="产品">
+      <h3>产品</h3>
+      <a href="#capabilities">能力</a>
+      <a href="#architecture">架构</a>
+      <a href="#quickstart">快速开始</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+
+    <nav class="footer-col" aria-label="仓库">
+      <h3>仓库</h3>
+      <a href="https://github.com/getthelostcode/hysteria-provider-panel-" rel="noopener">控制面 / 面板</a>
+      <a href="https://github.com/getthelostcode/register-hysteria" rel="noopener">节点安装脚本</a>
+      <a href="https://github.com/getthelostcode/hysteria-auth" rel="noopener">独立鉴权服务</a>
+      <a href="https://github.com/getthelostcode/hysteria-traffic-collector" rel="noopener">流量采集器</a>
+    </nav>
+
+    <nav class="footer-col" aria-label="入口">
+      <h3>入口</h3>
+      <a href="https://hysteria.ipx.sarl/admin" rel="noopener">平台后台</a>
+      <a href="https://hysteria.ipx.sarl/provider/login" rel="noopener">服务商后台</a>
+      <a href="https://hysteria.ipx.sarl/user" rel="noopener">用户中心</a>
+      <a href="https://hysteria.ipx.sarl/provider-signup" rel="noopener">服务商注册</a>
+    </nav>
+  </div>
+
+  <div class="shell footer-bottom">
+    <span>© <span id="year">2026</span> Hysteria2 Control</span>
+    <span>开源自托管 · 数据在你自己的库里</span>
+  </div>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

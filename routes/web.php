@@ -17,3 +17,12 @@ Route::get('/provider-signup', [ProviderSignupController::class, 'show'])->name(
 Route::post('/provider-signup', [ProviderSignupController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('provider.signup.store');
+
+// 宣传站（静态文件在 public/site/；nginx 直接出，这里兜底）
+// 必须落到 /site/index.html：页面里的 assets/... 才是相对 /site/ 解析
+Route::get('/site', fn () => redirect('/site/index.html', 301))->name('site');
+Route::get('/site/index.html', fn () => response(
+    (string) file_get_contents(public_path('site/index.html')),
+    200,
+    ['Content-Type' => 'text/html; charset=UTF-8'],
+));

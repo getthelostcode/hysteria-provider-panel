@@ -324,6 +324,32 @@ POST /provider-signup        建 providers + provider_users，自动登录并跳
 curl -s https://<面板域名>/provider-signup | grep -o '<title>.*</title>'
 ```
 
+### 3.10 宣传站 `/site/`
+
+产品宣传页（个人 / 公司双场景）以静态文件随面板发布，不用单独域名：
+
+```
+public/site/index.html
+public/site/assets/{styles.css,app.js,favicon.svg}
+```
+
+Laravel 侧只兜底两个入口（`/site`、`/site/` → `/site/index.html`）；资源由 nginx 直接出。nginx 加：
+
+```nginx
+location = /site { return 301 /site/; }
+
+location /site/ {
+    index index.html;
+    try_files $uri $uri/ /site/index.html;
+}
+```
+
+更新宣传页：改 `public/site/index.html`（或从独立仓库 `hysteria-site` 同步整目录）后直接生效，无需 `artisan` 命令。访问：
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://<面板域名>/site/
+```
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |
