@@ -276,6 +276,14 @@ code, pre { font-family: var(--mono); }
   font-size: 13.5px;
 }
 .hero-facts li { position: relative; padding-left: 16px; }
+.hero-aside {
+  margin: 18px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.hero-aside a { color: var(--acc); text-decoration: none; }
+.hero-aside a:hover { text-decoration: underline; }
+
 .hero-facts li::before {
   content: "";
   position: absolute;

@@ -326,11 +326,17 @@ curl -s https://<面板域名>/provider-signup | grep -o '<title>.*</title>'
 
 ### 3.10 宣传站 `/site/`
 
-产品宣传页（个人 / 公司双场景）以静态文件随面板发布，不用单独域名：
+对外站点随面板发布，不用单独域名，两个页面分别对两类人说话：
+
+- `/site/`（`index.html`）：**服务商/个人接入**——把节点接进来，平台提供 HTTP 鉴权、服务器与用户流量、用户注册页；主 CTA 是 `provider-signup`
+- `/site/free.html`：**终端用户**——10 GB 体验流量账号，填服务商识别码跳 `/join/{code}`；支持 `?code=` 预填，服务商可直接转发
+
+静态文件：
 
 ```
-public/site/index.html
-public/site/assets/{styles.css,app.js,favicon.svg}
+public/site/index.html     服务商接入页
+public/site/free.html      10 GB 体验页（用户）
+public/site/assets/{styles.css,free.css,app.js,free.js,favicon.svg}
 ```
 
 Laravel 侧只兜底两个入口（`/site`、`/site/` → `/site/index.html`）；资源由 nginx 直接出。nginx 加：
