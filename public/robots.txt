@@ -1,2 +1,14 @@
 User-agent: *
-Disallow:
+Allow: /
+Allow: /site/
+Allow: /provider-signup
+Allow: /join/
+
+# 后台与接口不索引
+Disallow: /admin
+Disallow: /provider/
+Disallow: /provider/login
+Disallow: /user
+Disallow: /api/
+
+Sitemap: https://hysteria.ipx.sarl/site/sitemap.xml

@@ -58,4 +58,46 @@ class MarketingSiteTest extends TestCase
         $this->assertStringContainsString('assets/free.css', $html);
         $this->assertStringNotContainsString('github.com', $html);
     }
+
+    public function test_sitemap_lists_public_pages(): void
+    {
+        $path = public_path('site/sitemap.xml');
+        $this->assertFileExists($path);
+
+        $xml = simplexml_load_string((string) file_get_contents($path));
+        $this->assertNotFalse($xml, 'sitemap.xml 不是合法 XML');
+
+        $locs = [];
+        foreach ($xml->url as $url) {
+            $locs[] = (string) $url->loc;
+        }
+
+        $this->assertContains('https://hysteria.ipx.sarl/site/', $locs);
+        $this->assertContains('https://hysteria.ipx.sarl/site/free.html', $locs);
+        $this->assertContains('https://hysteria.ipx.sarl/provider-signup', $locs);
+        $this->assertNotContains('https://hysteria.ipx.sarl/admin', $locs);
+        $this->assertNotContains('https://hysteria.ipx.sarl/user', $locs);
+    }
+
+    public function test_robots_points_to_sitemap_and_hides_backend(): void
+    {
+        $robots = (string) file_get_contents(public_path('robots.txt'));
+
+        $this->assertStringContainsString('Sitemap: https://hysteria.ipx.sarl/site/sitemap.xml', $robots);
+        $this->assertStringContainsString('Disallow: /admin', $robots);
+        $this->assertStringContainsString('Disallow: /user', $robots);
+        $this->assertStringContainsString('Disallow: /api/', $robots);
+    }
+
+    public function test_pages_have_canonical_urls(): void
+    {
+        $this->assertStringContainsString(
+            '<link rel="canonical" href="https://hysteria.ipx.sarl/site/">',
+            (string) file_get_contents(public_path('site/index.html')),
+        );
+        $this->assertStringContainsString(
+            '<link rel="canonical" href="https://hysteria.ipx.sarl/site/free.html">',
+            (string) file_get_contents(public_path('site/free.html')),
+        );
+    }
 }
