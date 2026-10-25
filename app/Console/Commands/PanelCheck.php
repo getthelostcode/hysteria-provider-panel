@@ -67,6 +67,10 @@ class PanelCheck extends Command
         try {
             $add('数据库', true, (string) config('database.default'));
             $add('表 end_users', Schema::hasTable('end_users'), '终端用户');
+            $add('列 end_users.quota_used_bytes', Schema::hasColumn('end_users', 'quota_used_bytes'),
+                Schema::hasColumn('end_users', 'quota_used_bytes') ? '配额周期' : '缺列 → php artisan migrate --force');
+            $add('列 providers.default_quota_bytes', Schema::hasColumn('providers', 'default_quota_bytes'),
+                Schema::hasColumn('providers', 'default_quota_bytes') ? '新用户默认套餐' : '缺列 → php artisan migrate --force');
             $add('表 node_user_traffic', Schema::hasTable('node_user_traffic'), '每用户流量');
             $add('表 config_templates', Schema::hasTable('config_templates'), '标准模板');
         } catch (Throwable $e) {

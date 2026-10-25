@@ -10,6 +10,8 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * 服务商后台 → 套餐默认值：新注册用户套用的流量配额与重置周期。
@@ -78,15 +80,37 @@ class QuotaSettings extends Page implements HasForms
 
     public function save(): void
     {
+        if (! Schema::hasColumn('providers', 'default_quota_bytes')) {
+            Notification::make()
+                ->title('数据库还没迁移')
+                ->body('先执行：php artisan migrate --force（缺 providers.default_quota_bytes 等字段）')
+                ->danger()
+                ->persistent()
+                ->send();
+
+            return;
+        }
+
         $data = $this->form->getState();
 
         $gb = $data['default_quota_gb'] ?? null;
         $days = $data['default_reset_days'] ?? null;
 
-        $this->provider()->update([
-            'default_quota_bytes' => ($gb === null || $gb === '') ? null : (int) round(((float) $gb) * 1024 ** 3),
-            'default_quota_reset_days' => ($days === null || $days === '') ? null : (int) $days,
-        ]);
+        try {
+            $this->provider()->update([
+                'default_quota_bytes' => ($gb === null || $gb === '') ? null : (int) round(((float) $gb) * 1024 ** 3),
+                'default_quota_reset_days' => ($days === null || $days === '') ? null : (int) $days,
+            ]);
+        } catch (QueryException $e) {
+            Notification::make()
+                ->title('保存失败：数据库缺字段')
+                ->body('在面板目录执行 php artisan migrate --force 后重试。' . $e->getMessage())
+                ->danger()
+                ->persistent()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('已保存')
