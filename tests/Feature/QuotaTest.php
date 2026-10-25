@@ -188,6 +188,18 @@ class QuotaTest extends TestCase
         $this->assertSame((int) (3.5 * self::GB), $user->quotaRemainingBytes());
     }
 
+    public function test_users_page_links_to_quota_settings(): void
+    {
+        $provider = $this->provider();
+        $owner = ProviderUser::factory()->create(['provider_id' => $provider->id]);
+
+        $this->actingAs($owner, 'provider')
+            ->get('/provider/alpha01/users')
+            ->assertOk()
+            ->assertSee('套餐默认值')
+            ->assertSee('/provider/alpha01/quota');
+    }
+
     public function test_provider_creates_user_with_quota_from_form(): void
     {
         $provider = $this->provider();

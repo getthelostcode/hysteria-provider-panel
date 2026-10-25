@@ -46,6 +46,8 @@ class PanelCheck extends Command
             'api.config_template' => 'GET /api/config-template（标准模板）',
             'api.collector.nodes' => 'GET /api/collector/v1/nodes（采集器）',
             'filament.user.pages.servers' => 'GET /user/servers（用户面板）',
+            'filament.provider.pages.quota' => 'GET /provider/{code}/quota（套餐默认值）',
+            'filament.provider.pages.config-template' => 'GET /provider/{code}/config-template（配置模板）',
         ] as $name => $label) {
             $add('路由 ' . $label, Route::has($name), Route::has($name) ? '已注册' : '缺失（config/route 缓存？跑 optimize:clear）');
         }
