@@ -14,7 +14,18 @@ class Provider extends Model
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
 
-    protected $fillable = ['code', 'name', 'contact', 'status', 'notes'];
+    protected $fillable = [
+        'code', 'name', 'contact', 'status', 'notes',
+        'default_quota_bytes', 'default_quota_reset_days',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'default_quota_bytes' => 'integer',
+            'default_quota_reset_days' => 'integer',
+        ];
+    }
 
     public function nodes(): HasMany
     {

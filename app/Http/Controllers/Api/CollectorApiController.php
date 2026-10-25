@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\EndUser;
 use App\Models\Node;
 use App\Models\NodeKickQueue;
 use App\Models\NodeUserOnline;
@@ -91,6 +92,9 @@ class CollectorApiController
         $online = $data['online'] ?? null;
 
         DB::transaction(function () use ($node, $users, $online, $day, $polledAt): void {
+            /** @var array<string, EndUser|null> $quotaUsers */
+            $quotaUsers = [];
+
             foreach ($users as $row) {
                 $tx = (int) ($row['tx'] ?? 0);
                 $rx = (int) ($row['rx'] ?? 0);
@@ -106,6 +110,18 @@ class CollectorApiController
                 $record->tx_bytes = (int) $record->tx_bytes + $tx;
                 $record->rx_bytes = (int) $record->rx_bytes + $rx;
                 $record->save();
+
+                // 配额按「本期已用」累计：周期到了先清零，再加这一批增量
+                $uuid = (string) $row['user_id'];
+                if (! array_key_exists($uuid, $quotaUsers)) {
+                    $quotaUsers[$uuid] = EndUser::query()->where('uuid', $uuid)->first();
+                }
+
+                $endUser = $quotaUsers[$uuid];
+                if ($endUser !== null) {
+                    $endUser->rolloverQuotaIfDue();
+                    $endUser->increment('quota_used_bytes', $tx + $rx);
+                }
             }
 
             if ($online !== null) {

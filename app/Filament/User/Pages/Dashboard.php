@@ -33,6 +33,7 @@ class Dashboard extends Page
     public function getViewData(): array
     {
         $user = Auth::guard('end_user')->user();
+        $user->rolloverQuotaIfDue();
 
         $totals = NodeUserTraffic::query()
             ->where('user_id', $user->uuid)
@@ -56,7 +57,10 @@ class Dashboard extends Page
             'todayBytes' => (int) (($today->tx ?? 0) + ($today->rx ?? 0)),
             'nodes' => $nodes,
             'connections' => $connections,
-            'quotaLabel' => $user->traffic_quota_bytes ? NodeUserTraffic::human((int) $user->traffic_quota_bytes) : '不限',
+            'quotaLabel' => $user->hasQuota() ? NodeUserTraffic::human((int) $user->traffic_quota_bytes) : '不限',
+            'quotaUsageLabel' => $user->quotaUsageLabel(),
+            'quotaResetLabel' => $user->quotaResetLabel(),
+            'quotaExceeded' => $user->quotaExceeded(),
             'expiresLabel' => $user->expires_at?->format('Y-m-d H:i') ?? '不限',
         ];
     }

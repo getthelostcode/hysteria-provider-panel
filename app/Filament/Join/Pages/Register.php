@@ -82,6 +82,12 @@ class Register extends Page implements HasForms
             'password' => $data['password'],
             'status' => EndUser::STATUS_ACTIVE,
             'register_ip' => request()->ip(),
+            // 运营商给新用户设的默认套餐（如 10 GB / 7 天）
+            'traffic_quota_bytes' => $this->provider->default_quota_bytes,
+            'quota_reset_days' => $this->provider->default_quota_reset_days,
+            'quota_reset_at' => $this->provider->default_quota_reset_days
+                ? now()->addDays((int) $this->provider->default_quota_reset_days)
+                : null,
         ]);
 
         session()->put('join_user_id', $user->id);

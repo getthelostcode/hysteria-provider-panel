@@ -84,6 +84,12 @@ class HysteriaAuthController
             return response()->json(['ok' => false, 'msg' => '服务商已停用'], 200);
         }
 
+        // 流量配额：周期先滚动（10 GB / 7 天这类），再看本期是否用完
+        $user->rolloverQuotaIfDue();
+        if ($user->quotaExceeded()) {
+            return response()->json(['ok' => false, 'msg' => '流量已用完，请联系服务商'], 200);
+        }
+
         // 写库节流：同一用户 60s 内只更新一次 last_auth_at
         if ($user->last_auth_at === null || $user->last_auth_at->lt(now()->subMinute())) {
             $user->forceFill(['last_auth_at' => now()])->saveQuietly();

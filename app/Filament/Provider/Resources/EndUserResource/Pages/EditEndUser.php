@@ -14,4 +14,14 @@ class EditEndUser extends EditRecord
     {
         return [Actions\DeleteAction::make()->label('删除')];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return EndUserResource::fillQuotaInput($data);
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return EndUserResource::mergeQuotaInput($data);
+    }
 }

@@ -34,7 +34,15 @@
             </div>
             <div>
                 <dt class="text-xs text-gray-500 dark:text-gray-400">流量配额</dt>
-                <dd class="mt-0.5 font-semibold">{{ $quotaLabel }}</dd>
+                <dd class="mt-0.5 font-semibold {{ $quotaExceeded ? 'text-danger-600 dark:text-danger-400' : '' }}">
+                    {{ $quotaLabel }}
+                </dd>
+                <dd class="text-xs text-gray-500 dark:text-gray-400">
+                    本期 {{ $quotaUsageLabel }}
+                    @if ($quotaResetLabel !== '不重置')
+                        · {{ $quotaResetLabel }} 重置
+                    @endif
+                </dd>
             </div>
             <div>
                 <dt class="text-xs text-gray-500 dark:text-gray-400">用户 ID</dt>

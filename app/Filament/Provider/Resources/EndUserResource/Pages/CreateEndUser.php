@@ -15,7 +15,7 @@ class CreateEndUser extends CreateRecord
         // 强制归属当前运营商，前端改不了
         $data['provider_id'] = Filament::getTenant()?->getKey();
 
-        return $data;
+        return EndUserResource::mergeQuotaInput($data);
     }
 
     protected function getCreatedNotificationTitle(): ?string

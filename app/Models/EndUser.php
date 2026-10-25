@@ -23,7 +23,8 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
 
     protected $fillable = [
         'provider_id', 'uuid', 'email', 'name', 'password', 'connect_token', 'status',
-        'traffic_quota_bytes', 'expires_at', 'last_auth_at', 'register_ip',
+        'traffic_quota_bytes', 'quota_used_bytes', 'quota_reset_days', 'quota_reset_at',
+        'expires_at', 'last_auth_at', 'register_ip',
     ];
 
     protected $hidden = ['password', 'remember_token', 'connect_token'];
@@ -36,6 +37,9 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
             'expires_at' => 'datetime',
             'last_auth_at' => 'datetime',
             'traffic_quota_bytes' => 'integer',
+            'quota_used_bytes' => 'integer',
+            'quota_reset_days' => 'integer',
+            'quota_reset_at' => 'datetime',
         ];
     }
 
@@ -113,6 +117,119 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
         });
 
         return $new;
+    }
+
+    /** 是否设了配额（空 = 不限） */
+    public function hasQuota(): bool
+    {
+        return $this->traffic_quota_bytes !== null;
+    }
+
+    /** 本期是否已用完 */
+    public function quotaExceeded(): bool
+    {
+        return $this->hasQuota() && (int) $this->quota_used_bytes >= (int) $this->traffic_quota_bytes;
+    }
+
+    /** 本期剩余字节（不限返回 null） */
+    public function quotaRemainingBytes(): ?int
+    {
+        if (! $this->hasQuota()) {
+            return null;
+        }
+
+        return max(0, (int) $this->traffic_quota_bytes - (int) $this->quota_used_bytes);
+    }
+
+    /**
+     * 周期到了就清零（惰性执行，鉴权与采集写入时都会调）。
+     *
+     * - 没设 quota_reset_days：不重置（一次性额度），什么都不做
+     * - quota_reset_at 为空：从现在起算一个周期
+     * - 已过期：清零并把 quota_reset_at 推到下一个未来时间点
+     */
+    public function rolloverQuotaIfDue(): void
+    {
+        $days = (int) ($this->quota_reset_days ?? 0);
+        if ($days <= 0) {
+            return;
+        }
+
+        $now = now();
+
+        if ($this->quota_reset_at === null) {
+            $this->forceFill(['quota_reset_at' => $now->copy()->addDays($days)])->saveQuietly();
+
+            return;
+        }
+
+        if ($this->quota_reset_at->isFuture()) {
+            return;
+        }
+
+        $next = $this->quota_reset_at->copy();
+        do {
+            $next->addDays($days);
+        } while ($next->isPast());
+
+        $this->forceFill([
+            'quota_used_bytes' => 0,
+            'quota_reset_at' => $next,
+        ])->saveQuietly();
+    }
+
+    /** 服务商/平台改了周期后，保证 quota_reset_at 与周期一致 */
+    public function syncQuotaCycle(): void
+    {
+        $days = (int) ($this->quota_reset_days ?? 0);
+
+        if ($days <= 0) {
+            $this->forceFill(['quota_reset_at' => null])->saveQuietly();
+
+            return;
+        }
+
+        if ($this->quota_reset_at === null) {
+            $this->forceFill(['quota_reset_at' => now()->addDays($days)])->saveQuietly();
+        }
+    }
+
+    /** 本期用量标签，例如 6.4 GB / 10 GB（不限返回"不限"） */
+    public function quotaUsageLabel(): string
+    {
+        if (! $this->hasQuota()) {
+            return '不限';
+        }
+
+        return self::humanBytes((int) $this->quota_used_bytes)
+            . ' / ' . self::humanBytes((int) $this->traffic_quota_bytes);
+    }
+
+    /** 人类可读字节，去掉多余的 .00（6.50 GB → 6.5 GB，10.00 GB → 10 GB） */
+    public static function humanBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $value = (float) $bytes;
+        $i = 0;
+
+        while ($value >= 1024 && $i < count($units) - 1) {
+            $value /= 1024;
+            $i++;
+        }
+
+        $text = rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+
+        return $text . ' ' . $units[$i];
+    }
+
+    /** 下次重置文案 */
+    public function quotaResetLabel(): string
+    {
+        if ((int) ($this->quota_reset_days ?? 0) <= 0) {
+            return '不重置';
+        }
+
+        return $this->quota_reset_at?->format('Y-m-d H:i') ?? '待开始';
     }
 
     /** 该用户所属运营商的注册页 */
