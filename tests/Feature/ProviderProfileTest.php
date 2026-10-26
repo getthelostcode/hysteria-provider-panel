@@ -71,6 +71,7 @@ class ProviderProfileTest extends TestCase
             ->fillForm([
                 'name' => '星云网络（新）',
                 'contact' => 'tg:@new',
+                'account_name' => '小王',
                 'email' => 'new-owner@xingyun.test',
             ])
             ->call('save')
@@ -80,6 +81,7 @@ class ProviderProfileTest extends TestCase
         $this->assertSame('星云网络（新）', $provider->name);
         $this->assertSame('tg:@new', $provider->contact);
         $this->assertSame('new-owner@xingyun.test', $owner->refresh()->email);
+        $this->assertSame('小王', $owner->refresh()->name);
     }
 
     public function test_duplicate_name_is_rejected(): void
@@ -91,6 +93,7 @@ class ProviderProfileTest extends TestCase
         Livewire::test(Profile::class)
             ->fillForm([
                 'name' => '已存在的名字',
+                'account_name' => '小王',
                 'email' => 'owner@xingyun.test',
             ])
             ->call('save')
@@ -110,6 +113,7 @@ class ProviderProfileTest extends TestCase
         Livewire::test(Profile::class)
             ->fillForm([
                 'name' => '星云网络',
+                'account_name' => '小王',
                 'email' => 'taken@example.com',
             ])
             ->call('save')
@@ -126,6 +130,7 @@ class ProviderProfileTest extends TestCase
         Livewire::test(Profile::class)
             ->fillForm([
                 'name' => '星云网络',
+                'account_name' => '小王',
                 'email' => 'owner@xingyun.test',
                 'current_password' => 'wrong-pass',
                 'password' => 'new-secret-123',
@@ -145,6 +150,7 @@ class ProviderProfileTest extends TestCase
         Livewire::test(Profile::class)
             ->fillForm([
                 'name' => '星云网络',
+                'account_name' => '小王',
                 'email' => 'owner@xingyun.test',
                 'current_password' => 'secret-123',
                 'password' => 'new-secret-123',
@@ -163,5 +169,27 @@ class ProviderProfileTest extends TestCase
         $this->expectException(QueryException::class);
 
         Provider::factory()->create(['code' => 'dupe01', 'name' => '星云网络']);
+    }
+
+    public function test_account_name_is_used_in_user_menu(): void
+    {
+        [$provider, $owner] = $this->make([], ['name' => '老名字']);
+        $this->asProvider($provider, $owner);
+
+        Livewire::test(Profile::class)
+            ->fillForm([
+                'name' => '星云网络',
+                'account_name' => '王工',
+                'email' => 'owner@xingyun.test',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('王工', $owner->refresh()->name);
+
+        $this->actingAs($owner, 'provider')
+            ->get("/provider/{$provider->code}")
+            ->assertOk()
+            ->assertSee('王工');
     }
 }

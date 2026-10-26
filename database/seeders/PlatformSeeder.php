@@ -52,7 +52,7 @@ class PlatformSeeder extends Seeder
 
             ProviderUser::query()->firstOrCreate(
                 ['email' => $definition['email']],
-                ['provider_id' => $provider->id, 'name' => $definition['name'] . ' 运维', 'password' => 'Provider123456'],
+                ['provider_id' => $provider->id, 'name' => '管理员', 'password' => 'Provider123456'],
             );
 
             foreach ($definition['nodes'] as $nodeDefinition) {

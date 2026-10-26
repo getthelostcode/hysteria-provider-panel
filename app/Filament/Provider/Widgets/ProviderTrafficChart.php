@@ -94,6 +94,19 @@ class ProviderTrafficChart extends ChartWidget
         ];
     }
 
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'min' => 0,
+                    'ticks' => ['precision' => 0],
+                ],
+            ],
+        ];
+    }
+
     protected function getType(): string
     {
         return 'line';

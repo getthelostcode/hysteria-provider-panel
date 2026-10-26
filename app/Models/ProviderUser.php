@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 
-class ProviderUser extends Authenticatable implements FilamentUser, HasTenants
+class ProviderUser extends Authenticatable implements FilamentUser, HasName, HasTenants
 {
     use HasFactory;
     use Notifiable;
@@ -27,6 +28,12 @@ class ProviderUser extends Authenticatable implements FilamentUser, HasTenants
             'password' => 'hashed',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    /** 后台右上角/头像显示的名字：姓名优先，没填就用邮箱 */
+    public function getFilamentName(): string
+    {
+        return (string) ($this->name ?: $this->email);
     }
 
     public function provider(): BelongsTo

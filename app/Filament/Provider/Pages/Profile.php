@@ -49,6 +49,7 @@ class Profile extends Page implements HasForms
             'name' => $provider->name,
             'contact' => $provider->contact,
             'email' => $this->account()->email,
+            'account_name' => $this->account()->name,
         ]);
     }
 
@@ -75,6 +76,11 @@ class Profile extends Page implements HasForms
 
                 Forms\Components\Section::make('登录账号')
                     ->schema([
+                        Forms\Components\TextInput::make('account_name')
+                            ->label('姓名（显示名）')
+                            ->required()
+                            ->maxLength(60)
+                            ->helperText('显示在后台右上角；填你自己的名字或岗位即可。'),
                         Forms\Components\TextInput::make('email')
                             ->label('登录邮箱')
                             ->email()
@@ -129,6 +135,7 @@ class Profile extends Page implements HasForms
             'contact' => $data['contact'] !== '' ? $data['contact'] : null,
         ]);
 
+        $account->name = trim((string) $data['account_name']);
         $account->email = mb_strtolower((string) $data['email']);
         if ($newPassword !== '') {
             $account->password = $newPassword;
@@ -140,6 +147,7 @@ class Profile extends Page implements HasForms
             'name' => $provider->fresh()->name,
             'contact' => $provider->fresh()->contact,
             'email' => $account->fresh()->email,
+            'account_name' => $account->fresh()->name,
         ]);
 
         Notification::make()
