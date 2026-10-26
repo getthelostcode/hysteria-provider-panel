@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Models\Node;
 use App\Models\Provider;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 官网 /site/ 的服务商列表（公开、只读）。
@@ -16,7 +17,7 @@ class PublicProviderController
 {
     public function __invoke(): JsonResponse
     {
-        $payload = Cache::remember('public_providers:v1', 60, function (): array {
+        try {
             $ttl = (int) config('hysteria.node_online_ttl', 90);
             $onlineAfter = now()->subSeconds($ttl);
 
@@ -43,11 +44,21 @@ class PublicProviderController
                 ->values()
                 ->all();
 
-            return ['count' => count($providers), 'providers' => $providers];
-        });
+            return response()
+                ->json(['count' => count($providers), 'providers' => $providers])
+                ->header('Cache-Control', 'no-store, max-age=0');
+        } catch (QueryException $e) {
+            // 没跑迁移时给明确信号，站点会显示「列表暂不可用」
+            Log::warning('public providers api failed: ' . $e->getMessage());
 
-        return response()
-            ->json($payload)
-            ->header('Cache-Control', 'public, max-age=60');
+            return response()
+                ->json([
+                    'count' => 0,
+                    'providers' => [],
+                    'error' => 'providers_table_not_migrated',
+                    'message' => '面板缺 providers.listed 字段，请在面板目录执行 php artisan migrate --force',
+                ], 503)
+                ->header('Cache-Control', 'no-store, max-age=0');
+        }
     }
 }

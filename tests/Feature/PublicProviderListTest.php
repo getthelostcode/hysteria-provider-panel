@@ -115,4 +115,17 @@ class PublicProviderListTest extends TestCase
         $this->assertStringContainsString('id="providerList"', $html);
         $this->assertStringContainsString('/api/public/providers', $html);
     }
+
+    public function test_listing_changes_are_visible_immediately(): void
+    {
+        $provider = $this->provider('instant01', false);
+
+        $this->getJson('/api/public/providers')->assertOk()->assertJsonPath('count', 0);
+
+        $provider->update(['listed' => true]);
+        $this->getJson('/api/public/providers')->assertOk()->assertJsonPath('providers.0.code', 'instant01');
+
+        $provider->update(['listed' => false]);
+        $this->getJson('/api/public/providers')->assertOk()->assertJsonPath('count', 0);
+    }
 }

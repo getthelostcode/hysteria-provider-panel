@@ -4,7 +4,7 @@
 
 - 源文件在独立目录/仓库 `hysteria-site`（`index.html` + `assets/`），整目录同步过来；
 - 首页 `index.html` 有「服务商列表」区块（`#providers`），运行时从 `GET /api/public/providers` 拉取
-  （`providers.listed=true` 且状态正常的服务商，60s 缓存）；新增/下架在平台后台「服务商」里控制
+  （`providers.listed=true` 且状态正常的服务商；接口不缓存，改完刷新即可见）；新增/下架在平台后台「服务商」里控制
 - Laravel 只在 `routes/web.php` 兜底 `/site`、`/site/` 两个入口，静态资源由 nginx 直接出；
 - 改完直接生效，不需要 `artisan` 命令；nginx 片段见项目 README「3.10 宣传站」。
 

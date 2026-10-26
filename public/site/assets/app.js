@@ -100,14 +100,29 @@
   if (providerList) {
     var endpoint = providerList.getAttribute('data-endpoint') || '/api/public/providers';
 
-    fetch(endpoint, { headers: { Accept: 'application/json' }, credentials: 'omit' })
-      .then(function (res) { if (!res.ok) throw new Error(String(res.status)); return res.json(); })
+    fetch(endpoint + '?t=' + Date.now(), {
+      headers: { Accept: 'application/json' },
+      credentials: 'omit',
+      cache: 'no-store'
+    })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (!res.ok) {
+            var err = new Error('http_' + res.status);
+            err.data = data;
+            throw err;
+          }
+          return data;
+        });
+      })
       .then(function (data) { renderProviders(providerList, (data && data.providers) || []); })
-      .catch(function () {
+      .catch(function (err) {
         providerList.innerHTML = '';
         var note = document.createElement('p');
         note.className = 'providers-empty';
-        note.textContent = '服务商列表加载失败，稍后再试；也可以直接点右上角「注册服务商」。';
+        note.textContent = (err && err.data && err.data.message)
+          ? '服务商列表暂不可用：' + err.data.message
+          : '服务商列表加载失败，稍后再试；也可以直接点右上角「注册服务商」。';
         providerList.appendChild(note);
       });
   }

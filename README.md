@@ -442,7 +442,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<面板域名>/site/
 ### 3.16 官网服务商列表（`/site/#providers`）
 
 - 官网首页新增「服务商列表」：卡片显示名称、识别码、节点数/在线数，按钮「注册试用」→ `/join/{code}`、「10 GB 体验」→ `/site/free.html?code=…`
-- 数据来自公开接口 `GET /api/public/providers`（60s 缓存，`providers.listed=true` 且状态正常才返回）
+- 数据来自公开接口 `GET /api/public/providers`（**不缓存**，改完立即生效；只返回 `providers.listed=true` 且状态正常的服务商）
 - 平台后台 → 服务商：
   - 表单勾选 **「在官网服务商列表展示」**（`providers.listed`）
   - 列表新增「官网展示」图标列

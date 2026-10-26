@@ -44,6 +44,7 @@ class PanelCheck extends Command
             'api.auth' => 'POST /auth（Hysteria 鉴权）',
             'api.install_script' => 'GET /api/install.sh（一键安装脚本）',
             'api.config_template' => 'GET /api/config-template（标准模板）',
+            'api.public.providers' => 'GET /api/public/providers（官网服务商列表）',
             'api.collector.nodes' => 'GET /api/collector/v1/nodes（采集器）',
             'filament.user.pages.servers' => 'GET /user/servers（用户面板）',
             'filament.provider.pages.quota' => 'GET /provider/{code}/quota（套餐默认值）',
@@ -71,6 +72,8 @@ class PanelCheck extends Command
                 Schema::hasColumn('end_users', 'quota_used_bytes') ? '配额周期' : '缺列 → php artisan migrate --force');
             $add('列 providers.default_quota_bytes', Schema::hasColumn('providers', 'default_quota_bytes'),
                 Schema::hasColumn('providers', 'default_quota_bytes') ? '新用户默认套餐' : '缺列 → php artisan migrate --force');
+            $add('列 providers.listed', Schema::hasColumn('providers', 'listed'),
+                Schema::hasColumn('providers', 'listed') ? '官网服务商列表开关' : '缺列 → php artisan migrate --force');
             $add('表 node_user_traffic', Schema::hasTable('node_user_traffic'), '每用户流量');
             $add('表 config_templates', Schema::hasTable('config_templates'), '标准模板');
         } catch (Throwable $e) {
