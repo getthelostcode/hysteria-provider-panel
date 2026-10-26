@@ -41,7 +41,10 @@ class ProviderResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->label('名称')
                     ->required()
-                    ->maxLength(120),
+                    ->minLength(2)
+                    ->maxLength(120)
+                    ->rule(fn (?Provider $record) => \Illuminate\Validation\Rule::unique('providers', 'name')->ignore($record?->id))
+                    ->validationMessages(['unique' => '这个名称已被其他服务商使用，换一个']),
                 Forms\Components\TextInput::make('contact')
                     ->label('联系方式')
                     ->maxLength(190),

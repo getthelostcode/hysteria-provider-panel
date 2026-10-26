@@ -7,6 +7,7 @@ use App\Models\ProviderUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -62,8 +63,12 @@ class ProviderSignupController extends Controller
         if (ProviderUser::query()->where('email', $data['email'])->exists()) {
             throw ValidationException::withMessages(['email' => '这个邮箱已经注册过服务商']);
         }
+        if (Provider::query()->whereRaw('lower(name) = lower(?)', [trim($data['name'])])->exists()) {
+            throw ValidationException::withMessages(['name' => '这个名称已被其他服务商使用，换一个']);
+        }
 
-        $provider = DB::transaction(function () use ($data, $code): Provider {
+        try {
+            $provider = DB::transaction(function () use ($data, $code): Provider {
             $provider = Provider::query()->create([
                 'code' => $code,
                 'name' => trim($data['name']),
@@ -79,8 +84,16 @@ class ProviderSignupController extends Controller
                 'password' => $data['password'],
             ]);
 
-            return $provider;
-        });
+                return $provider;
+            });
+        } catch (QueryException $e) {
+            // 并发下撞到唯一索引：name / code / email
+            if (str_contains($e->getMessage(), 'providers.name') || str_contains($e->getMessage(), 'providers_name_unique')) {
+                throw ValidationException::withMessages(['name' => '这个名称已被其他服务商使用，换一个']);
+            }
+
+            throw $e;
+        }
 
         $user = $provider->providerUsers()->where('email', $data['email'])->firstOrFail();
 

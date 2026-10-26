@@ -79,6 +79,16 @@ class ProviderSignupTest extends TestCase
         $this->assertSame(1, Provider::query()->count());
     }
 
+    public function test_duplicate_name_is_rejected(): void
+    {
+        Provider::factory()->create(['code' => 'exists01', 'name' => '星云网络']);
+
+        $this->post('/provider-signup', $this->payload(['code' => 'newcode01']))
+            ->assertSessionHasErrors('name');
+
+        $this->assertSame(1, Provider::query()->count());
+    }
+
     public function test_duplicate_email_is_rejected(): void
     {
         $this->post('/provider-signup', $this->payload())->assertRedirect();
