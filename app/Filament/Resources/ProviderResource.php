@@ -62,6 +62,13 @@ class ProviderResource extends Resource
         ]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\ProviderResource\RelationManagers\ProviderUsersRelationManager::class,
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
