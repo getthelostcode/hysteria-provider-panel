@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Provider\Widgets\ProviderNodesTable;
 use App\Filament\Provider\Widgets\ProviderStatsOverview;
+use App\Filament\Provider\Widgets\ProviderTopUsers;
 use App\Filament\Provider\Widgets\ProviderTrafficChart;
 use App\Models\Provider;
 use Filament\Http\Middleware\Authenticate;
@@ -46,14 +48,13 @@ class ProviderPanelProvider extends PanelProvider
             ->tenant(Provider::class, slugAttribute: 'code')
             ->discoverResources(in: app_path('Filament/Provider/Resources'), for: 'App\\Filament\\Provider\\Resources')
             ->discoverPages(in: app_path('Filament/Provider/Pages'), for: 'App\\Filament\\Provider\\Pages')
-            ->pages([
-                Pages\Dashboard::class,
-            ])
+            ->pages([])
             ->discoverWidgets(in: app_path('Filament/Provider/Widgets'), for: 'App\\Filament\\Provider\\Widgets')
             ->widgets([
                 ProviderStatsOverview::class,
                 ProviderTrafficChart::class,
-                Widgets\AccountWidget::class,
+                ProviderNodesTable::class,
+                ProviderTopUsers::class,
             ])
             ->middleware([
                 EncryptCookies::class,
