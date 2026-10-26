@@ -11,6 +11,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://hysteria.ipx.sarl/site/">
 <link rel="canonical" href="https://hysteria.ipx.sarl/site/">
+<meta name="keywords" content="Hysteria2,Hysteria2 节点管理,节点控制面,服务商接入,HTTP 鉴权,流量统计,流量配额,多租户,一键安装节点,10GB 体验,节点运营后台">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <script>
 /* 目录入口补斜杠，保证 assets/ 在任意托管路径下都能解析 */
@@ -19,6 +20,57 @@ if (!/\/$/.test(location.pathname) && !/index\.html$/.test(location.pathname)) {
 }
 </script>
 <link rel="stylesheet" href="assets/styles.css?v=20261026">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "name": "Hysteria2 接入平台",
+      "url": "https://hysteria.ipx.sarl/site/",
+      "inLanguage": "zh-CN",
+      "description": "面向个人与服务商的 Hysteria2 节点接入平台：一条命令接入服务器，平台提供 HTTP 鉴权、服务器与用户流量统计、终端用户注册页与多租户后台。"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "接入需要改节点上的什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "基本不用手改。接入脚本会写好 auth.http.url、trafficStats、证书和 systemd 单元，只把运营商识别码传进去即可。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "HTTP 鉴权稳定吗？面板维护会不会断？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "鉴权由独立服务承担，和后台分开部署；后台升级、重启不影响节点鉴权，接口始终返回 200，用 ok 和 msg 说明结果。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "流量是怎么统计的？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "平台定时读取节点 trafficStats，按用户取增量并累计，同时保留按天归档；服务器和用户两个维度都能查，可设 10 GB / 7 天这类周期配额。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "个人只有一两台机器，也能用吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "可以。个人和服务商用同一套接入方式，区别只是规模：个人看自己的节点和账号，服务商多了用户注册页和多运营商隔离。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <a class="skip" href="#main">跳到正文</a>

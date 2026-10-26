@@ -350,8 +350,10 @@ location /site/ {
 }
 ```
 
-SEO：`public/site/sitemap.xml` 列出三个公开页（`/site/`、`/site/free.html`、`/provider-signup`），
+SEO：`public/site/sitemap.xml` 列出三个公开页（`/site/`、`/site/free.html`、`/provider-signup`，lastmod 2026-10-26），
 `public/robots.txt` 指向它并屏蔽 `/admin`、`/provider/`、`/user`、`/api/`。
+两页都加了 `<meta name="keywords">` 与 JSON-LD 结构化数据（WebSite/WebPage + FAQPage，问答与页面可见内容一致）。
+
 新增公开页时同步改 `sitemap.xml` 的 `<loc>` 与 `<lastmod>`，再去 Google Search Console / Bing 提交一次。
 
 更新宣传页：改 `public/site/index.html`（或从独立仓库 `hysteria-site` 同步整目录）后直接生效，无需 `artisan` 命令。

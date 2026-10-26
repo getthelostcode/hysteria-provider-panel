@@ -73,6 +73,7 @@ class MarketingSiteTest extends TestCase
         }
 
         $this->assertContains('https://hysteria.ipx.sarl/site/', $locs);
+        $this->assertSame('2026-10-26', (string) $xml->url[0]->lastmod);
         $this->assertContains('https://hysteria.ipx.sarl/site/free.html', $locs);
         $this->assertContains('https://hysteria.ipx.sarl/provider-signup', $locs);
         $this->assertNotContains('https://hysteria.ipx.sarl/admin', $locs);
@@ -99,5 +100,24 @@ class MarketingSiteTest extends TestCase
             '<link rel="canonical" href="https://hysteria.ipx.sarl/site/free.html">',
             (string) file_get_contents(public_path('site/free.html')),
         );
+    }
+
+    public function test_pages_have_keywords_and_structured_data(): void
+    {
+        foreach (['site/index.html', 'site/free.html'] as $file) {
+            $html = (string) file_get_contents(public_path($file));
+
+            $this->assertMatchesRegularExpression('/<meta name="keywords" content="[^"]{10,}">/', $html, $file);
+
+            preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $html, $m);
+            $this->assertNotEmpty($m, $file . ' 缺 JSON-LD');
+
+            $data = json_decode($m[1], true);
+            $this->assertIsArray($data, $file . ' JSON-LD 不是合法 JSON');
+            $this->assertArrayHasKey('@graph', $data);
+
+            $types = array_column($data['@graph'], '@type');
+            $this->assertContains('FAQPage', $types);
+        }
     }
 }
