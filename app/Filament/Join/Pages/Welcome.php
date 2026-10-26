@@ -90,11 +90,13 @@ class Welcome extends Page implements HasTable
                     ->withSum('onlineUsers as connections_sum', 'connections'),
             )
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('ip')
                     ->label('服务器')
-                    ->description(fn (Node $record): string => ($record->hostname ?: $record->ip) . ':' . (int) config('hysteria.public_port', 443))
+                    ->state(fn (Node $record): string => (string) $record->ip)
+                    ->description(fn (Node $record): string => $record->clientLabel((int) config('hysteria.public_port', 443)))
                     ->weight('bold')
-                    ->searchable(),
+                    ->copyable()
+                    ->searchable(['ip', 'name', 'hostname']),
                 Tables\Columns\TextColumn::make('status_label')
                     ->label('状态')
                     ->badge()

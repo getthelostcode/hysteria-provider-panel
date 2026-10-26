@@ -105,7 +105,7 @@ class UserPortalTest extends TestCase
         $this->actingAs($user, 'end_user')->get('/user')
             ->assertOk()
             ->assertSee('累计流量')
-            ->assertSee('3.00 MB')
+            ->assertSee('3 MB')
             ->assertSee('示例服务商 A')
             ->assertSee('joe@example.com');
     }
@@ -157,6 +157,8 @@ class UserPortalTest extends TestCase
 
         $this->actingAs($me, 'end_user')->get('/user/servers')
             ->assertOk()
+            ->assertSee($this->nodeA->ip)
+            ->assertSee($this->nodeB->ip)
             ->assertSee('东京-01')
             ->assertSee('大阪-02')
             ->assertSee('我的合计')
@@ -177,6 +179,9 @@ class UserPortalTest extends TestCase
         $this->assertStringContainsString($me->uuid, $html);
         $this->assertStringContainsString('<svg', $html);
         $this->assertStringContainsString('obfs-password=alpha01', $html);
+        // 连接地址以 IP 为准，不用 hostname
+        $this->assertStringContainsString('@' . $this->nodeA->ip . ':', $html);
+        $this->assertStringNotContainsString('@jp1.example.com', $html);
         // 复制按钮：不再把 JSON 塞进双引号属性（会截断），且有 execCommand 降级
         $this->assertStringContainsString('x-on:click="copy()"', $html);
         $this->assertStringContainsString('execCommand', $html);
@@ -221,5 +226,33 @@ class UserPortalTest extends TestCase
 
         // Dashboard 路由名以 . 结尾（slug '/'），只用得到路径，这里顺带断言可访问
         $this->assertSame(url('/user'), Dashboard::getUrl());
+    }
+
+    public function test_dashboard_shows_quota_usage_ratio(): void
+    {
+        $user = $this->user(attrs: [
+            'traffic_quota_bytes' => 10 * 1024 ** 3,
+            'quota_used_bytes' => (int) (2.5 * 1024 ** 3),
+            'quota_reset_days' => 7,
+            'quota_reset_at' => now()->addDays(3),
+        ]);
+
+        $this->actingAs($user, 'end_user')->get('/user')
+            ->assertOk()
+            ->assertSee('流量使用')
+            ->assertSee('25%')
+            ->assertSee('2.5 GB / 10 GB', false)
+            ->assertSee('剩余 7.5 GB', false);
+    }
+
+    public function test_dashboard_without_quota_shows_used_only(): void
+    {
+        $user = $this->user(attrs: ['quota_used_bytes' => (int) (1.5 * 1024 ** 3)]);
+
+        $this->actingAs($user, 'end_user')->get('/user')
+            ->assertOk()
+            ->assertSee('不限流量')
+            ->assertSee('1.5 GB', false)
+            ->assertDontSee('剩余');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\User\Pages;
 
+use App\Models\EndUser;
 use App\Models\Node;
 use App\Models\NodeUserOnline;
 use App\Models\NodeUserTraffic;
@@ -50,6 +51,12 @@ class Dashboard extends Page
 
         $connections = (int) NodeUserOnline::query()->where('user_id', $user->uuid)->sum('connections');
 
+        $quotaBytes = $user->traffic_quota_bytes !== null ? (int) $user->traffic_quota_bytes : null;
+        $quotaUsed = (int) $user->quota_used_bytes;
+        $quotaPercent = $quotaBytes !== null && $quotaBytes > 0
+            ? min(100, (int) round($quotaUsed / $quotaBytes * 100))
+            : null;
+
         return [
             'user' => $user,
             'provider' => $user->provider,
@@ -57,10 +64,19 @@ class Dashboard extends Page
             'todayBytes' => (int) (($today->tx ?? 0) + ($today->rx ?? 0)),
             'nodes' => $nodes,
             'connections' => $connections,
-            'quotaLabel' => $user->hasQuota() ? NodeUserTraffic::human((int) $user->traffic_quota_bytes) : '不限',
+            'quotaLabel' => $user->hasQuota() ? EndUser::humanBytes((int) $user->traffic_quota_bytes) : '不限',
             'quotaUsageLabel' => $user->quotaUsageLabel(),
             'quotaResetLabel' => $user->quotaResetLabel(),
             'quotaExceeded' => $user->quotaExceeded(),
+            'quotaBytes' => $quotaBytes,
+            'quotaPercent' => $quotaPercent,
+            'quotaRemainingLabel' => $quotaBytes !== null ? EndUser::humanBytes(max(0, $quotaBytes - $quotaUsed)) : null,
+            'quotaBarColor' => $quotaPercent === null
+                ? 'primary'
+                : ($quotaPercent >= 100 ? 'danger' : ($quotaPercent >= 80 ? 'warning' : 'primary')),
+            'quotaBarHex' => $quotaPercent === null
+                ? '#10b981'
+                : ($quotaPercent >= 100 ? '#ef4444' : ($quotaPercent >= 80 ? '#f59e0b' : '#10b981')),
             'expiresLabel' => $user->expires_at?->format('Y-m-d H:i') ?? '不限',
         ];
     }

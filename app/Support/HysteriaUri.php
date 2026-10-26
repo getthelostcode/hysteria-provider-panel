@@ -9,7 +9,7 @@ use App\Models\Node;
  * 生成 Hysteria2 连接 URL（可直接导入客户端 / 生成二维码）。
  *
  *   hysteria2://<uuid>@<host>:<port>/?sni=<sni>&obfs=salamander
- *             &obfs-password=<运营商识别码>&pinSHA256=<证书SHA256，hex 无冒号>#<host>
+ *             &obfs-password=<运营商识别码>&pinSHA256=<证书SHA256，hex 无冒号>#<IP>
  *
  * - 账号就是 uuid，URL 里不带密码（/auth 认「只有 uuid」的 auth）
  * - sni 固定为 bing.com（TLS 只靠 pinSHA256 校验，与节点域名无关）
@@ -24,7 +24,8 @@ class HysteriaUri
 
     public static function for(Node $node, EndUser $user, ?string $providerCode = null, ?int $port = null): string
     {
-        $host = $node->hostForClient();
+        // 连接地址以 IP 为准（节点换域名/CDN 时不影响客户端；证书靠 pinSHA256）
+        $host = trim((string) $node->ip) !== '' ? (string) $node->ip : $node->hostForClient();
         $port = $port ?? (int) config('hysteria.public_port', 443);
         $code = $providerCode ?? (string) $user->provider?->code;
 

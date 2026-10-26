@@ -44,7 +44,9 @@ class HysteriaUriTest extends TestCase
         $uri = HysteriaUri::for($node, $user, 'alpha01');
 
         // 只有账号（uuid），不带密码
-        $this->assertStringStartsWith('hysteria2://' . $user->uuid . '@jp1.example.com:443/?', $uri);
+        $this->assertStringStartsWith('hysteria2://' . $user->uuid . '@' . $node->ip . ':443/?', $uri);
+        // 连接地址以 IP 为准，不用 hostname
+        $this->assertStringNotContainsString('@jp1.example.com', $uri);
         // sni 固定 bing.com，与节点域名无关
         $this->assertStringContainsString('sni=bing.com', $uri);
         $this->assertStringContainsString('obfs=salamander', $uri);
@@ -54,7 +56,7 @@ class HysteriaUriTest extends TestCase
         $this->assertStringNotContainsString('pinSHA256=7A%3A', $uri);
         $this->assertStringNotContainsString('%3D', $uri);
         $this->assertStringNotContainsString('insecure', $uri);
-        $this->assertStringEndsWith('#jp1.example.com', $uri);
+        $this->assertStringEndsWith('#' . $node->ip, $uri);
     }
 
     public function test_pin_falls_back_to_hex_converted_from_base64(): void

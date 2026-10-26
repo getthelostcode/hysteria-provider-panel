@@ -75,11 +75,13 @@ class Servers extends Page implements HasTable
                     ),
             )
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('ip')
                     ->label('服务器')
-                    ->description(fn (Node $record): string => ($record->hostname ?: $record->ip) . ':' . (int) config('hysteria.public_port', 443))
+                    ->state(fn (Node $record): string => (string) $record->ip)
+                    ->description(fn (Node $record): string => $record->clientLabel((int) config('hysteria.public_port', 443)))
                     ->weight('bold')
-                    ->searchable(),
+                    ->copyable()
+                    ->searchable(['ip', 'name', 'hostname']),
                 Tables\Columns\TextColumn::make('status_label')
                     ->label('状态')
                     ->badge()
@@ -119,7 +121,7 @@ class Servers extends Page implements HasTable
                     ->label('连接 / 二维码')
                     ->icon('heroicon-m-qr-code')
                     ->color('primary')
-                    ->modalHeading(fn (Node $record): string => '连接 ' . $record->name)
+                    ->modalHeading(fn (Node $record): string => '连接 ' . $record->ip)
                     ->modalDescription('手机扫二维码导入，或复制链接到客户端')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('关闭')

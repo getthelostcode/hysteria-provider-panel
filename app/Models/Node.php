@@ -161,6 +161,22 @@ class Node extends Model
         return null;
     }
 
+    /**
+     * 用户面板里服务器行的副标题：名称/主机名（去重、去掉与 IP 重复的），再带端口。
+     * 标题固定是 IP，所以这里不再重复 IP。
+     */
+    public function clientLabel(int $port = 443): string
+    {
+        $labels = array_filter(
+            array_unique([trim((string) $this->name), trim((string) $this->hostname)]),
+            fn (string $label): bool => $label !== '' && $label !== (string) $this->ip,
+        );
+
+        $label = implode(' · ', $labels);
+
+        return ($label !== '' ? $label . ' · ' : '') . '端口 ' . $port;
+    }
+
     /** 客户端连接用的主机名：优先 hostname，否则 IP */
     public function hostForClient(): string
     {
