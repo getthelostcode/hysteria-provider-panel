@@ -439,6 +439,16 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<面板域名>/site/
 - **删除**：至少保留一个账号，最后一个的删除按钮隐藏，避免把服务商锁在门外
 - 服务商自己也能在 `/provider/{code}/profile` 改邮箱与密码；这里是平台侧兜底
 
+### 3.16 官网服务商列表（`/site/#providers`）
+
+- 官网首页新增「服务商列表」：卡片显示名称、识别码、节点数/在线数，按钮「注册试用」→ `/join/{code}`、「10 GB 体验」→ `/site/free.html?code=…`
+- 数据来自公开接口 `GET /api/public/providers`（60s 缓存，`providers.listed=true` 且状态正常才返回）
+- 平台后台 → 服务商：
+  - 表单勾选 **「在官网服务商列表展示」**（`providers.listed`）
+  - 列表新增「官网展示」图标列
+  - 批量操作「上架到官网 / 从官网下架」
+- 服务商被停用后自动从列表消失（接口只取 active）
+
 ## 4. 数据表
 
 | 表 | 关键字段 | 说明 |

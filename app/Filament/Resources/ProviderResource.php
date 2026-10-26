@@ -54,6 +54,10 @@ class ProviderResource extends Resource
                     ->default('active')
                     ->required()
                     ->helperText('停用后该服务商节点无法注册、后台账号无法登录'),
+                Forms\Components\Toggle::make('listed')
+                    ->label('在官网服务商列表展示')
+                    ->helperText('打开后，/site/ 的「服务商列表」会出现这家服务商（仅状态正常时可见）')
+                    ->default(false),
                 Forms\Components\Textarea::make('notes')
                     ->label('备注')
                     ->rows(3)
@@ -88,6 +92,13 @@ class ProviderResource extends Resource
                     ->counts('nodes')
                     ->label('节点数')
                     ->badge(),
+                Tables\Columns\IconColumn::make('listed')
+                    ->label('官网展示')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success')
+                    ->falseColor('gray'),
                 Tables\Columns\TextColumn::make('provider_users_count')
                     ->counts('providerUsers')
                     ->label('后台账号')
@@ -117,6 +128,25 @@ class ProviderResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('id', 'desc')
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('list')
+                        ->label('上架到官网')
+                        ->icon('heroicon-o-globe-alt')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(fn ($records) => $records->each->update(['listed' => true]))
+                        ->deselectRecordsAfterCompletion(),
+                    Tables\Actions\BulkAction::make('unlist')
+                        ->label('从官网下架')
+                        ->icon('heroicon-o-eye-slash')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->action(fn ($records) => $records->each->update(['listed' => false]))
+                        ->deselectRecordsAfterCompletion(),
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

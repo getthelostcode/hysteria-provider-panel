@@ -95,6 +95,74 @@
     });
   });
 
+  /* 服务商列表：从面板公开 API 拉取 */
+  var providerList = document.getElementById('providerList');
+  if (providerList) {
+    var endpoint = providerList.getAttribute('data-endpoint') || '/api/public/providers';
+
+    fetch(endpoint, { headers: { Accept: 'application/json' }, credentials: 'omit' })
+      .then(function (res) { if (!res.ok) throw new Error(String(res.status)); return res.json(); })
+      .then(function (data) { renderProviders(providerList, (data && data.providers) || []); })
+      .catch(function () {
+        providerList.innerHTML = '';
+        var note = document.createElement('p');
+        note.className = 'providers-empty';
+        note.textContent = '服务商列表加载失败，稍后再试；也可以直接点右上角「注册服务商」。';
+        providerList.appendChild(note);
+      });
+  }
+
+  function renderProviders(container, providers) {
+    container.innerHTML = '';
+
+    if (!providers.length) {
+      var empty = document.createElement('p');
+      empty.className = 'providers-empty';
+      empty.textContent = '暂时没有公开的服务商。你可以先领 10 GB 体验，或自己入驻成为服务商。';
+      container.appendChild(empty);
+      return;
+    }
+
+    providers.forEach(function (p) {
+      var card = document.createElement('article');
+      card.className = 'provider-card';
+
+      var head = document.createElement('div');
+      var name = document.createElement('h3');
+      name.textContent = p.name || '未命名服务商';
+      var code = document.createElement('span');
+      code.className = 'provider-code';
+      code.textContent = p.code || '';
+      head.appendChild(name);
+      head.appendChild(code);
+
+      var stats = document.createElement('p');
+      stats.className = 'provider-stats';
+      stats.innerHTML = '节点 <b>' + Number(p.nodes || 0) + '</b> · 在线 <b>' + Number(p.online || 0) + '</b>';
+
+      var actions = document.createElement('div');
+      actions.className = 'provider-actions';
+
+      var join = document.createElement('a');
+      join.className = 'btn btn-primary';
+      join.href = p.join_url || ('/join/' + encodeURIComponent(p.code || ''));
+      join.textContent = '注册试用';
+
+      var free = document.createElement('a');
+      free.className = 'btn btn-ghost';
+      free.href = p.free_url || ('free.html?code=' + encodeURIComponent(p.code || ''));
+      free.textContent = '10 GB 体验';
+
+      actions.appendChild(join);
+      actions.appendChild(free);
+
+      card.appendChild(head);
+      card.appendChild(stats);
+      card.appendChild(actions);
+      container.appendChild(card);
+    });
+  }
+
   /* 年份 */
   var year = document.getElementById('year');
   if (year) year.textContent = String(new Date().getFullYear());

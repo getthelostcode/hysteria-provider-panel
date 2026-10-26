@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,16 +16,23 @@ class Provider extends Model
     public const STATUS_SUSPENDED = 'suspended';
 
     protected $fillable = [
-        'code', 'name', 'contact', 'status', 'notes',
+        'code', 'name', 'contact', 'status', 'listed', 'notes',
         'default_quota_bytes', 'default_quota_reset_days',
     ];
 
     protected function casts(): array
     {
         return [
+            'listed' => 'boolean',
             'default_quota_bytes' => 'integer',
             'default_quota_reset_days' => 'integer',
         ];
+    }
+
+    /** 官网服务商列表只展示「正常 + 已勾选展示」的 */
+    public function scopeListed(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_ACTIVE)->where('listed', true);
     }
 
     public function nodes(): HasMany

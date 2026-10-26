@@ -38,6 +38,7 @@ if (!/\/$/.test(location.pathname) && !/index\.html$/.test(location.pathname)) {
     </button>
 
     <nav class="nav-menu" id="navMenu" aria-label="主导航">
+      <a href="#providers">服务商</a>
       <a href="#scenes">服务对象</a>
       <a href="#capabilities">平台能力</a>
       <a href="#flow">接入流程</a>
@@ -106,6 +107,25 @@ if (!/\/$/.test(location.pathname) && !/index\.html$/.test(location.pathname)) {
         <li>模板下发</li>
         <li>踢人下线</li>
       </ul>
+    </div>
+  </section>
+
+  <!-- 服务商列表 -->
+  <section class="section" id="providers">
+    <div class="shell">
+      <header class="section-head reveal">
+        <p class="kicker">服务商列表</p>
+        <h2>挑一家开通，或者先领 10 GB</h2>
+        <p class="section-sub">下面是在平台入驻、并开放注册的服务商。点「注册试用」用邮箱开通，或直接领体验流量。</p>
+      </header>
+
+      <div class="providers-grid" id="providerList" data-endpoint="/api/public/providers">
+        <p class="providers-note">正在加载服务商…</p>
+      </div>
+
+      <p class="providers-more">
+        你是服务商？<a href="https://hysteria.ipx.sarl/provider-signup">入驻后可在平台后台申请上架 →</a>
+      </p>
     </div>
   </section>
 
@@ -529,6 +549,8 @@ hk1         ○      6 分钟前      —
 
     <nav class="footer-col" aria-label="平台">
       <h3>平台</h3>
+      <a href="#providers">服务商</a>
+      <a href="#providers">服务商列表</a>
       <a href="#scenes">服务对象</a>
       <a href="#capabilities">平台能力</a>
       <a href="#flow">接入流程</a>

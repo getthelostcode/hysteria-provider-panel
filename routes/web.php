@@ -12,6 +12,11 @@ Route::get('/join/{code}', function (string $code) {
     return redirect("/join/{$code}/register");
 })->name('join.show');
 
+// 官网服务商列表（公开只读）
+Route::get('/api/public/providers', \App\Http\Controllers\Api\PublicProviderController::class)
+    ->middleware('throttle:120,1')
+    ->name('api.public.providers');
+
 // 服务商自助注册（公开；PROVIDER_SIGNUP_ENABLED=false 可关闭）
 Route::get('/provider-signup', [ProviderSignupController::class, 'show'])->name('provider.signup');
 Route::post('/provider-signup', [ProviderSignupController::class, 'store'])
