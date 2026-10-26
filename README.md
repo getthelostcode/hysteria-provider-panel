@@ -354,7 +354,8 @@ SEO：`public/site/sitemap.xml` 列出三个公开页（`/site/`、`/site/free.h
 `public/robots.txt` 指向它并屏蔽 `/admin`、`/provider/`、`/user`、`/api/`。
 新增公开页时同步改 `sitemap.xml` 的 `<loc>` 与 `<lastmod>`，再去 Google Search Console / Bing 提交一次。
 
-更新宣传页：改 `public/site/index.html`（或从独立仓库 `hysteria-site` 同步整目录）后直接生效，无需 `artisan` 命令。访问：
+更新宣传页：改 `public/site/index.html`（或从独立仓库 `hysteria-site` 同步整目录）后直接生效，无需 `artisan` 命令。
+改过 `assets/*.css|js` 记得把 HTML 里的 `?v=20261026` 换成新日期，否则浏览器/nginx 会继续用旧缓存。访问：
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' https://<面板域名>/site/
