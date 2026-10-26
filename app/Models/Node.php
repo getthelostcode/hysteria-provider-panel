@@ -45,6 +45,12 @@ class Node extends Model
     }
 
     /** 终端用户在线快照（采集器每轮整体替换） */
+    /** 每个用户在该节点上的流量（按天记录，累加即该节点总用量） */
+    public function userTraffic(): HasMany
+    {
+        return $this->hasMany(NodeUserTraffic::class);
+    }
+
     public function onlineUsers(): HasMany
     {
         return $this->hasMany(NodeUserOnline::class);

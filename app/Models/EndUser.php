@@ -7,6 +7,7 @@ use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Str;
 
@@ -66,6 +67,12 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
     public function getFilamentName(): string
     {
         return (string) ($this->name ?: $this->email);
+    }
+
+    /** 该用户在所有节点上的流量明细（user_id 存的是 uuid） */
+    public function traffic(): HasMany
+    {
+        return $this->hasMany(NodeUserTraffic::class, 'user_id', 'uuid');
     }
 
     public function provider(): BelongsTo
@@ -194,32 +201,22 @@ class EndUser extends Authenticatable implements FilamentUser, HasName
         }
     }
 
-    /** 本期用量标签，例如 6.4 GB / 10 GB（不限返回"不限"） */
+    /**
+     * 本期用量标签：有配额显示「6.4 GB / 10 GB」，不限则只显示已用「6.4 GB」。
+     */
     public function quotaUsageLabel(): string
     {
-        if (! $this->hasQuota()) {
-            return '不限';
-        }
+        $used = self::humanBytes((int) $this->quota_used_bytes);
 
-        return self::humanBytes((int) $this->quota_used_bytes)
-            . ' / ' . self::humanBytes((int) $this->traffic_quota_bytes);
+        return $this->hasQuota()
+            ? $used . ' / ' . self::humanBytes((int) $this->traffic_quota_bytes)
+            : $used;
     }
 
     /** 人类可读字节，去掉多余的 .00（6.50 GB → 6.5 GB，10.00 GB → 10 GB） */
     public static function humanBytes(int $bytes): string
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $value = (float) $bytes;
-        $i = 0;
-
-        while ($value >= 1024 && $i < count($units) - 1) {
-            $value /= 1024;
-            $i++;
-        }
-
-        $text = rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
-
-        return $text . ' ' . $units[$i];
+        return \App\Support\Bytes::human($bytes);
     }
 
     /** 下次重置文案 */

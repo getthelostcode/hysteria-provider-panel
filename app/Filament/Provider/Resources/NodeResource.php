@@ -5,6 +5,8 @@ namespace App\Filament\Provider\Resources;
 use App\Filament\Provider\Resources\NodeResource\Pages;
 use App\Models\Node;
 use App\Models\NodeTrafficDaily;
+use App\Support\Bytes;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
@@ -31,12 +33,18 @@ class NodeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->withSum('userTraffic as total_tx', 'tx_bytes')
+                ->withSum('userTraffic as total_rx', 'rx_bytes')
+                ->withSum(['userTraffic as today_tx' => fn (Builder $q) => $q->where('day', now()->utc()->toDateString())], 'tx_bytes')
+                ->withSum(['userTraffic as today_rx' => fn (Builder $q) => $q->where('day', now()->utc()->toDateString())], 'rx_bytes'))
             ->columns([
                 Tables\Columns\TextColumn::make('ip')
                     ->label('IP')
                     ->searchable()
                     ->copyable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->description(fn (Node $record): ?string => $record->hostname ?: null),
                 Tables\Columns\TextColumn::make('name')
                     ->label('名称')
                     ->searchable()
@@ -58,9 +66,14 @@ class NodeResource extends Resource
                     ->since()
                     ->placeholder('从未')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('traffic_today')
+                Tables\Columns\TextColumn::make('today_bytes')
                     ->label('今日流量')
-                    ->state(fn (Node $record): string => NodeTrafficDaily::human($record->trafficTodayBytes())),
+                    ->state(fn (Node $record): string => Bytes::human((int) ($record->today_tx ?? 0) + (int) ($record->today_rx ?? 0)))
+                    ->description(fn (Node $record): string => Bytes::upDown((int) ($record->today_tx ?? 0), (int) ($record->today_rx ?? 0))),
+                Tables\Columns\TextColumn::make('total_bytes')
+                    ->label('累计流量')
+                    ->state(fn (Node $record): string => Bytes::human((int) ($record->total_tx ?? 0) + (int) ($record->total_rx ?? 0)))
+                    ->description(fn (Node $record): string => Bytes::upDown((int) ($record->total_tx ?? 0), (int) ($record->total_rx ?? 0))),
             ])
             ->filters([
                 Tables\Filters\Filter::make('online')

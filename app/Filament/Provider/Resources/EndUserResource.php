@@ -4,6 +4,7 @@ namespace App\Filament\Provider\Resources;
 
 use App\Filament\Provider\Resources\EndUserResource\Pages;
 use App\Models\EndUser;
+use App\Support\Bytes;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -104,9 +105,12 @@ class EndUserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->withSum('traffic as total_tx', 'tx_bytes')
+                ->withSum('traffic as total_rx', 'rx_bytes'))
             ->columns([
                 Tables\Columns\TextColumn::make('email')->label('邮箱')->searchable()->copyable()->weight('bold'),
-                Tables\Columns\TextColumn::make('name')->label('昵称')->placeholder('—'),
+                Tables\Columns\TextColumn::make('name')->label('昵称')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('status')
                     ->label('状态')
                     ->badge()
@@ -115,16 +119,24 @@ class EndUserResource extends Resource
                 Tables\Columns\TextColumn::make('quota_used_bytes')
                     ->label('本期用量')
                     ->state(fn (EndUser $record): string => $record->quotaUsageLabel())
-                    ->description(fn (EndUser $record): string => $record->hasQuota() && $record->quotaExceeded() ? '已用尽' : '')
+                    ->description(fn (EndUser $record): string => $record->quotaExceeded()
+                        ? '已用尽'
+                        : ($record->hasQuota()
+                            ? '配额 ' . EndUser::humanBytes((int) $record->traffic_quota_bytes) . ' · 下次 ' . $record->quotaResetLabel()
+                            : '不限流量'))
                     ->color(fn (EndUser $record): string => $record->quotaExceeded() ? 'danger' : 'gray'),
                 Tables\Columns\TextColumn::make('quota_reset_at')
                     ->label('下次重置')
                     ->state(fn (EndUser $record): string => $record->quotaResetLabel())
                     ->description(fn (EndUser $record): ?string => (int) ($record->quota_reset_days ?? 0) > 0 ? '每 ' . $record->quota_reset_days . ' 天' : null)
                     ->placeholder('不重置'),
-                Tables\Columns\TextColumn::make('uuid')->label('用户 ID')->copyable()->toggleable(),
+                Tables\Columns\TextColumn::make('total_bytes')
+                    ->label('累计用量')
+                    ->state(fn (EndUser $record): string => Bytes::human((int) ($record->total_tx ?? 0) + (int) ($record->total_rx ?? 0)))
+                    ->description(fn (EndUser $record): string => Bytes::upDown((int) ($record->total_tx ?? 0), (int) ($record->total_rx ?? 0))),
+                Tables\Columns\TextColumn::make('uuid')->label('用户 ID')->copyable()->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('last_auth_at')->label('最近登录')->since()->placeholder('从未'),
-                Tables\Columns\TextColumn::make('created_at')->label('注册时间')->dateTime('Y-m-d H:i')->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->label('注册时间')->dateTime('Y-m-d H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('id', 'desc')
             ->filters([
